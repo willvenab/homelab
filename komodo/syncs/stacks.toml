@@ -33,3 +33,15 @@ run_directory = "stacks/beszel"
 environment = """
 BESZEL_AGENT_KEY = [[BESZEL_AGENT_KEY]]
 """
+
+[[stack]]
+name = "adguard"
+description = "Network-wide DNS ad blocking"
+tags = ["homelab", "dns"]
+deploy = true
+after = ["caddy"]
+[stack.config]
+server = "elitedesk"
+repo = "Willven/homelab"
+branch = "main"
+run_directory = "stacks/adguard"

@@ -12,3 +12,7 @@ komodo.{$DOMAIN} {
 beszel.{$DOMAIN} {
 	reverse_proxy beszel:8090
 }
+
+adguard.{$DOMAIN} {
+	reverse_proxy adguard:3000
+}
