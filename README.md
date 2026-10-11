@@ -82,9 +82,9 @@ If it stays red, the hub's errors aren't in `docker logs`: open `beszel.<DOMAIN>
 The `tailscale` stack makes the server a [subnet router](https://tailscale.com/kb/1019/subnets), so your phone can reach the LAN (and every `*.<DOMAIN>` service) from anywhere, with no ports opened on your router.
 
 1. Create a free account at [tailscale.com](https://tailscale.com) and install the Tailscale app on your phone, logged into the same account.
-2. Admin console → **Settings → Keys → Generate auth key** (one-off, not ephemeral). In Komodo, add the variables `TS_AUTHKEY` (mark it secret) and `LAN_SUBNET` (your LAN in CIDR form, e.g. `192.168.1.0/24`).
+2. Admin console → **Settings → Keys → Generate auth key** (one-off, not ephemeral). In Komodo, add the variables `TS_AUTHKEY` (mark it secret) and `LAN_SUBNET` (your LAN in CIDR form, e.g. `192.168.1.0/24`). Use the network address, ending in `.0` for a `/24`, not the server's own IP: `192.168.1.10/24` is rejected ("non-address bits set") and the container crash-loops.
 3. Re-run `bootstrap/install.sh` once if this box was set up before the Tailscale stack existed, so IP forwarding is enabled.
-4. Deploy the `tailscale` stack. In the admin console, open the `elitedesk` machine and:
+4. Deploy the `tailscale` stack. In the admin console, open the `elitedesk` machine and do the steps below. If the machine doesn't appear, it never logged in: check the container's logs (Komodo → `tailscale` stack → **Log**). The usual causes are a bad `LAN_SUBNET` or a rejected auth key. If the key was rejected, generate a new one, update `TS_AUTHKEY` and redeploy.
    - **Edit route settings** → approve the `LAN_SUBNET` route.
    - **Disable key expiry**, so the server doesn't drop off the tailnet after 180 days.
 5. Admin console → **DNS → Nameservers → Add nameserver → Custom**: enter the server's LAN IP, tick **Restrict to domain** (split DNS) and enter `<DOMAIN>`. Now `*.<DOMAIN>` resolves through AdGuard on your phone whenever Tailscale is on. (Skip "Restrict to domain" and enable **Override DNS servers** instead if you also want AdGuard's ad blocking while away.)
