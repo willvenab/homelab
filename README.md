@@ -52,7 +52,30 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
    - **Registry accounts**: add provider `ghcr.io`, username `willvenab`, and the same token. Only stacks that pull private images use it (see [Adding a service](#adding-a-service)).
 4. **Syncs → New**: name it `homelab`, repo `willvenab/homelab`, git account `willvenab`, branch `main`, resource path `komodo/syncs`. Run it. From then on the sync manages itself.
 5. Point `*.<DOMAIN>` at the server. AdGuard's UI is only reachable through Caddy, so first add a temporary line to `/etc/hosts` on your computer: `<server IP>  adguard.<DOMAIN>`. Then open `adguard.<DOMAIN>`, finish the setup wizard (see `stacks/adguard/compose.yaml`), and add **Filters → DNS rewrites** → `*.<DOMAIN>` → `<server IP>`. Point your router's DHCP DNS at the server and remove the `/etc/hosts` line.
-6. Beszel: open `beszel.<DOMAIN>`, click **Add system**, copy the public key into `BESZEL_AGENT_KEY`, redeploy the `beszel` stack, and add the system with host `/beszel_socket/beszel.sock`.
+6. Set up Beszel (see [Beszel](#beszel) below).
+
+## Beszel
+
+The hub (web UI) and the agent run in the same stack and talk over a unix socket, so the agent doesn't need a port. Both containers mount `/srv/appdata/beszel/socket` at `/beszel_socket`, so Beszel must always be given the in-container path `/beszel_socket/beszel.sock`, never the host path. The agent only accepts the hub if it has the hub's public key, so the first deploy takes two passes:
+
+1. Open `beszel.<DOMAIN>` and create the admin account (the first visit asks for one).
+2. Click **Add system**. Copy the **Public key** shown in the dialog, then close the dialog without adding anything. The key belongs to the hub and stays the same, so you can come back for it later.
+3. In Komodo, set the `BESZEL_AGENT_KEY` variable to that key (the whole `ssh-ed25519 AAAA...` line) and redeploy the `beszel` stack.
+4. Back in Beszel, click **Add system** again and fill it in:
+
+   | Field     | Value                        |
+   |-----------|------------------------------|
+   | Name      | `elitedesk` (any name)       |
+   | Host / IP | `/beszel_socket/beszel.sock` |
+   | Port      | leave the default (`45876`); it's ignored for a socket path |
+
+   Ignore the `docker compose` snippet in the dialog; `stacks/beszel/compose.yaml` already does that.
+5. Click **Add system**. The system should go green within a minute.
+
+If it stays red, the hub's errors aren't in `docker logs`: open `beszel.<DOMAIN>/_/` → **Logs** and filter with `level > 0`. The hub logs `System down` once when a system goes down, not on every retry, so an old entry may still be the current cause.
+
+- `dial unix ...: no such file or directory`: **Host / IP** is wrong (most likely the host path `/srv/appdata/...`). Edit the system and set it to `/beszel_socket/beszel.sock`.
+- `handshake failed` / `unable to authenticate`: `BESZEL_AGENT_KEY` doesn't match the hub's public key, or the stack wasn't redeployed after you changed it.
 
 ## Adding a service
 
