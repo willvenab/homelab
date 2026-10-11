@@ -1,5 +1,7 @@
 # One [[stack]] per directory in stacks/. Komodo clones this repo and runs
 # `docker compose up` in run_directory. `environment` is written to .env there.
+# git_account names the GitHub account added in the Komodo UI (Settings → Providers),
+# which this private repo needs; its token never lands in git.
 # Variables in [[double brackets]] are set in the Komodo UI (Settings → Variables),
 # so secrets never land in git.
 #
@@ -12,7 +14,8 @@ tags = ["homelab", "core"]
 deploy = true
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/caddy"
 # Build the custom Caddy image (stacks/caddy/Dockerfile) before each deploy.
@@ -30,7 +33,8 @@ deploy = true
 after = ["caddy"]
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/beszel"
 environment = """
@@ -45,6 +49,7 @@ deploy = true
 after = ["caddy"]
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/adguard"
