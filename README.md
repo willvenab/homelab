@@ -41,7 +41,7 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
 
 1. Buy a domain on Cloudflare, or move an existing domain's nameservers to Cloudflare (the free plan is fine). You can use the domain itself (`example.com`) or a subdomain (`home.example.com`) as `DOMAIN`.
 2. Cloudflare dashboard → **My Profile → API Tokens → Create Token** → "Edit zone DNS" template, limited to that zone. Keep the token for the next section.
-3. You don't need any public DNS records. The names only resolve on your LAN, through AdGuard (step 6 below).
+3. You don't need any public DNS records. The names only resolve on your LAN, through AdGuard (step 5 below).
 
 ## After bootstrap (one-time, in the Komodo UI)
 
@@ -51,8 +51,8 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
    - **Git accounts**: add provider `github.com`, username `willvenab`, and the token. Every stack and the sync clone with this account.
    - **Registry accounts**: add provider `ghcr.io`, username `willvenab`, and the same token. Only stacks that pull private images use it (see [Adding a service](#adding-a-service)).
 4. **Syncs → New**: name it `homelab`, repo `willvenab/homelab`, git account `willvenab`, branch `main`, resource path `komodo/syncs`. Run it. From then on the sync manages itself.
-5. Beszel: open `beszel.<DOMAIN>`, click **Add system**, copy the public key into `BESZEL_AGENT_KEY`, redeploy the `beszel` stack, and add the system with host `/beszel_socket/beszel.sock`.
-6. Point `*.<DOMAIN>` at the server. AdGuard's UI is only reachable through Caddy, so first add a temporary line to `/etc/hosts` on your computer: `<server IP>  adguard.<DOMAIN>`. Then open `adguard.<DOMAIN>`, finish the setup wizard (see `stacks/adguard/compose.yaml`), and add **Filters → DNS rewrites** → `*.<DOMAIN>` → `<server IP>`. Point your router's DHCP DNS at the server and remove the `/etc/hosts` line.
+5. Point `*.<DOMAIN>` at the server. AdGuard's UI is only reachable through Caddy, so first add a temporary line to `/etc/hosts` on your computer: `<server IP>  adguard.<DOMAIN>`. Then open `adguard.<DOMAIN>`, finish the setup wizard (see `stacks/adguard/compose.yaml`), and add **Filters → DNS rewrites** → `*.<DOMAIN>` → `<server IP>`. Point your router's DHCP DNS at the server and remove the `/etc/hosts` line.
+6. Beszel: open `beszel.<DOMAIN>`, click **Add system**, copy the public key into `BESZEL_AGENT_KEY`, redeploy the `beszel` stack, and add the system with host `/beszel_socket/beszel.sock`.
 
 ## Adding a service
 
