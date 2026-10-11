@@ -39,6 +39,13 @@ SystemMaxUse=200M
 EOF
 systemctl restart systemd-journald
 
+echo "==> IP forwarding (Tailscale subnet router)"
+cat > /etc/sysctl.d/99-tailscale.conf <<'EOF2'
+net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+EOF2
+sysctl -p /etc/sysctl.d/99-tailscale.conf
+
 echo "==> Docker CE from Docker's apt repo"
 if ! command -v docker >/dev/null; then
   install -m 0755 -d /etc/apt/keyrings

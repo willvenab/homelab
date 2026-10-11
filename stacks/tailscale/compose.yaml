@@ -1,0 +1,31 @@
+# Tailscale subnet router: lets tailnet devices (e.g. your phone) reach the
+# whole LAN, including *.<DOMAIN> through Caddy, without opening any ports.
+# Host networking so it can route to the LAN and the host gets a tailnet IP.
+# First deploy: approve the advertised route in the Tailscale admin console
+# and set up DNS there (see README → "Remote access with Tailscale").
+
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.5
+    restart: unless-stopped
+    mem_limit: 128m
+    hostname: elitedesk
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - /srv/appdata/tailscale/state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      # Only use the auth key on first login; afterwards the saved state is
+      # used, so the key can expire without breaking restarts.
+      TS_AUTH_ONCE: "true"
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: elitedesk
+      TS_ROUTES: ${LAN_SUBNET}
+      # Keep the host on its own DNS; clients use AdGuard via the tailnet.
+      TS_ACCEPT_DNS: "false"

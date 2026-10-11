@@ -40,11 +40,23 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
 ## After bootstrap (one-time, in the Komodo UI)
 
 1. Log in and change the admin password.
-2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret) and `BESZEL_AGENT_KEY` (any value for now; mark it secret).
+2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret), and the Tailscale variables from [Remote access with Tailscale](#remote-access-with-tailscale).
 3. If the repo is private, add a GitHub account/token under **Settings → Git Accounts** and set `git_account` in the TOML files.
 4. **Syncs → New**: name it `homelab`, repo `Willven/homelab`, branch `main`, resource path `komodo/syncs`. Run it. From then on the sync manages itself.
 5. Beszel: open `beszel.<DOMAIN>`, click **Add system**, copy the public key into `BESZEL_AGENT_KEY`, redeploy the `beszel` stack, and add the system with host `/beszel_socket/beszel.sock`.
 6. Point `*.<DOMAIN>` at the server. AdGuard's UI is only reachable through Caddy, so first add a temporary line to `/etc/hosts` on your computer: `<server IP>  adguard.<DOMAIN>`. Then open `adguard.<DOMAIN>`, finish the setup wizard (see `stacks/adguard/compose.yaml`), and add **Filters → DNS rewrites** → `*.<DOMAIN>` → `<server IP>`. Point your router's DHCP DNS at the server and remove the `/etc/hosts` line.
+
+## Remote access with Tailscale
+
+The `tailscale` stack makes the server a [subnet router](https://tailscale.com/kb/1019/subnets), so your phone can reach the LAN (and every `*.<DOMAIN>` service) from anywhere, with no ports opened on your router.
+
+1. Create a free account at [tailscale.com](https://tailscale.com) and install the Tailscale app on your phone, logged into the same account.
+2. Admin console → **Settings → Keys → Generate auth key** (one-off, not ephemeral). In Komodo, add the variables `TS_AUTHKEY` (mark it secret) and `LAN_SUBNET` (your LAN in CIDR form, e.g. `192.168.1.0/24`).
+3. Re-run `bootstrap/install.sh` once if this box was set up before the Tailscale stack existed, so IP forwarding is enabled.
+4. Deploy the `tailscale` stack. In the admin console, open the `elitedesk` machine and:
+   - **Edit route settings** → approve the `LAN_SUBNET` route.
+   - **Disable key expiry**, so the server doesn't drop off the tailnet after 180 days.
+5. Admin console → **DNS → Nameservers → Add nameserver → Custom**: enter the server's LAN IP, tick **Restrict to domain** (split DNS) and enter `<DOMAIN>`. Now `*.<DOMAIN>` resolves through AdGuard on your phone whenever Tailscale is on. (Skip "Restrict to domain" and enable **Override DNS servers** instead if you also want AdGuard's ad blocking while away.)
 
 ## Adding a service
 
