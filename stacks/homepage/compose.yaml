@@ -24,6 +24,7 @@ services:
     environment:
       HOMEPAGE_ALLOWED_HOSTS: home.${DOMAIN}
       HOMEPAGE_VAR_DOMAIN: ${DOMAIN}
+      HOMEPAGE_VAR_OPENWEATHERMAP_API_KEY: ${OPENWEATHERMAP_API_KEY}
       # Log to docker only, not to a file under /app/config.
       LOG_TARGETS: stdout
 

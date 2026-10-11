@@ -66,4 +66,5 @@ branch = "main"
 run_directory = "stacks/homepage"
 environment = """
 DOMAIN = [[DOMAIN]]
+OPENWEATHERMAP_API_KEY = [[OPENWEATHERMAP_API_KEY]]
 """

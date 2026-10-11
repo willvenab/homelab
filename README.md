@@ -40,7 +40,7 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
 ## After bootstrap (one-time, in the Komodo UI)
 
 1. Log in and change the admin password.
-2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret) and `BESZEL_AGENT_KEY` (any value for now; mark it secret).
+2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret) and `OPENWEATHERMAP_API_KEY` (from openweathermap.org; mark it secret).
 3. If the repo is private, add a GitHub account/token under **Settings → Git Accounts** and set `git_account` in the TOML files.
 4. **Syncs → New**: name it `homelab`, repo `Willven/homelab`, branch `main`, resource path `komodo/syncs`. Run it. From then on the sync manages itself.
 5. Beszel: open `beszel.<DOMAIN>`, click **Add system**, copy the public key into `BESZEL_AGENT_KEY`, redeploy the `beszel` stack, and add the system with host `/beszel_socket/beszel.sock`.
