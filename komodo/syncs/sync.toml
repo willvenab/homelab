@@ -21,8 +21,9 @@ name = "gitops-reconcile"
 description = "Apply the sync and redeploy changed stacks"
 tags = ["homelab"]
 [procedure.config]
-schedule_format = "English"
-schedule = "Every 5 minutes"
+# Cron with a leading seconds field: every 30 seconds.
+schedule_format = "Cron"
+schedule = "*/30 * * * * *"
 schedule_alert = false
 failure_alert = true
 

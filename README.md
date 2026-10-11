@@ -11,7 +11,7 @@ stacks/<name>/   one directory per service: compose.yaml (+ config files)
 ## How deploys work
 
 1. You push to `main`.
-2. Every 5 minutes, Komodo's `gitops-reconcile` procedure runs the `homelab` sync, which applies `komodo/syncs/*.toml`, then redeploys any stack whose files changed.
+2. Every 30 seconds, Komodo's `gitops-reconcile` procedure runs the `homelab` sync, which applies `komodo/syncs/*.toml`, then redeploys any stack whose files changed.
 3. Renovate opens PRs to bump pinned image tags. Merging one redeploys that stack.
 
 Komodo itself isn't in the sync. To upgrade it, bump the tags in `komodo/` and re-run `bootstrap/install.sh`.
