@@ -24,7 +24,11 @@
 
 	@adguard host adguard.{$DOMAIN}
 	handle @adguard {
-		reverse_proxy adguard:3000
+		# The UI is on 80 once set up; before that, the setup wizard is on 3000.
+		reverse_proxy adguard:80 adguard:3000 {
+			lb_policy first
+			lb_try_duration 2s
+		}
 	}
 
 	@homepage host home.{$DOMAIN}
@@ -32,8 +36,8 @@
 		reverse_proxy homepage:3000
 	}
 
-	# Unknown subdomain: close the connection.
+	# Unknown subdomain: plain 404.
 	handle {
-		abort
+		respond "Unknown service" 404
 	}
 }
