@@ -40,8 +40,9 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
 ## After bootstrap (one-time, in the Komodo UI)
 
 1. Log in and change the admin password.
-2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret) and `OPENWEATHERMAP_API_KEY` (from openweathermap.org; mark it secret).
+2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret) and `OPENWEATHERMAP_API_KEY` (from openweathermap.org; mark it secret) and `OSRS_PRICES_USER_AGENT` (e.g. `osrs-tools (homelab) - contact: you@example.com`; the OSRS Wiki asks for a way to reach you).
 3. If the repo is private, add a GitHub account/token under **Settings → Git Accounts** and set `git_account` in the TOML files.
+   The `osrs-tools` image is a private GHCR package: create a GitHub token (classic) with only `read:packages`, and add it under **Settings → Registry Accounts** with domain `ghcr.io` and username `willvenab`.
 4. **Syncs → New**: name it `homelab`, repo `Willven/homelab`, branch `main`, resource path `komodo/syncs`. Run it. From then on the sync manages itself.
 5. Beszel: open `beszel.<DOMAIN>`, click **Add system**, copy the public key into `BESZEL_AGENT_KEY`, redeploy the `beszel` stack, and add the system with host `/beszel_socket/beszel.sock`.
 6. Point `*.<DOMAIN>` at the server. AdGuard's UI is only reachable through Caddy, so first add a temporary line to `/etc/hosts` on your computer: `<server IP>  adguard.<DOMAIN>`. Then open `adguard.<DOMAIN>`, finish the setup wizard (see `stacks/adguard/compose.yaml`), and add **Filters → DNS rewrites** → `*.<DOMAIN>` → `<server IP>`. Point your router's DHCP DNS at the server and remove the `/etc/hosts` line.

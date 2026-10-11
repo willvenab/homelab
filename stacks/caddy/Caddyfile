@@ -32,6 +32,11 @@
 		reverse_proxy homepage:3000
 	}
 
+	@osrs host osrs.{$DOMAIN}
+	handle @osrs {
+		reverse_proxy osrs-tools:3000
+	}
+
 	# Unknown subdomain: close the connection.
 	handle {
 		abort

@@ -68,3 +68,23 @@ environment = """
 DOMAIN = [[DOMAIN]]
 OPENWEATHERMAP_API_KEY = [[OPENWEATHERMAP_API_KEY]]
 """
+
+[[stack]]
+name = "osrs-tools"
+description = "Old School RuneScape money-making tools"
+tags = ["homelab", "apps"]
+deploy = true
+after = ["caddy"]
+[stack.config]
+server = "elitedesk"
+repo = "Willven/homelab"
+branch = "main"
+run_directory = "stacks/osrs-tools"
+# The image is a private GHCR package: log in with the token saved under
+# Settings → Registry Accounts before pulling.
+registry_provider = "ghcr.io"
+registry_account = "willvenab"
+environment = """
+DOMAIN = [[DOMAIN]]
+OSRS_PRICES_USER_AGENT = [[OSRS_PRICES_USER_AGENT]]
+"""
