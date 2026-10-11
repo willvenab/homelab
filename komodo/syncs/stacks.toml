@@ -1,5 +1,7 @@
 # One [[stack]] per directory in stacks/. Komodo clones this repo and runs
 # `docker compose up` in run_directory. `environment` is written to .env there.
+# git_account names the GitHub account added in the Komodo UI (Settings → Providers),
+# which this private repo needs; its token never lands in git.
 # Variables in [[double brackets]] are set in the Komodo UI (Settings → Variables),
 # so secrets never land in git.
 #
@@ -12,11 +14,15 @@ tags = ["homelab", "core"]
 deploy = true
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/caddy"
 # Build the custom Caddy image (stacks/caddy/Dockerfile) before each deploy.
 run_build = true
+# Restart Caddy when the Caddyfile changes, so it reloads it. Otherwise the
+# reconcile procedure only notices changes to compose.yaml.
+config_files = [{ path = "conf/Caddyfile", requires = "Restart" }]
 environment = """
 DOMAIN = [[DOMAIN]]
 CLOUDFLARE_API_TOKEN = [[CLOUDFLARE_API_TOKEN]]
@@ -30,10 +36,12 @@ deploy = true
 after = ["caddy"]
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/beszel"
 environment = """
+DOMAIN = [[DOMAIN]]
 BESZEL_AGENT_KEY = [[BESZEL_AGENT_KEY]]
 """
 
@@ -45,9 +53,30 @@ deploy = true
 after = ["caddy"]
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/adguard"
+environment = """
+DOMAIN = [[DOMAIN]]
+"""
+
+[[stack]]
+name = "homepage"
+description = "Dashboard linking to every service"
+tags = ["homelab", "dashboard"]
+deploy = true
+after = ["caddy"]
+[stack.config]
+server = "elitedesk"
+repo = "willvenab/homelab"
+git_account = "willvenab"
+branch = "main"
+run_directory = "stacks/homepage"
+environment = """
+DOMAIN = [[DOMAIN]]
+OPENWEATHERMAP_API_KEY = [[OPENWEATHERMAP_API_KEY]]
+"""
 
 [[stack]]
 name = "tailscale"
@@ -56,7 +85,8 @@ tags = ["homelab", "network"]
 deploy = true
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/tailscale"
 environment = """

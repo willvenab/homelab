@@ -11,6 +11,13 @@ services:
     mem_limit: 128m
     hostname: elitedesk
     network_mode: host
+    labels:
+      homepage.group: Infrastructure
+      homepage.name: Tailscale
+      homepage.icon: tailscale.png
+      # No local web UI; link to the admin console (routes, keys, DNS).
+      homepage.href: https://login.tailscale.com/admin/machines
+      homepage.description: Remote access to the LAN
     cap_add:
       - NET_ADMIN
       - NET_RAW

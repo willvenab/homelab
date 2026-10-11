@@ -1,0 +1,8 @@
+title: Homelab
+theme: dark
+color: slate
+headerStyle: clean
+hideVersion: true
+
+providers:
+  openweathermap: "{{HOMEPAGE_VAR_OPENWEATHERMAP_API_KEY}}"
