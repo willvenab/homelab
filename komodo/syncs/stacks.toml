@@ -77,3 +77,19 @@ environment = """
 DOMAIN = [[DOMAIN]]
 OPENWEATHERMAP_API_KEY = [[OPENWEATHERMAP_API_KEY]]
 """
+
+[[stack]]
+name = "tailscale"
+description = "Subnet router for remote access to the LAN"
+tags = ["homelab", "network"]
+deploy = true
+[stack.config]
+server = "elitedesk"
+repo = "willvenab/homelab"
+git_account = "willvenab"
+branch = "main"
+run_directory = "stacks/tailscale"
+environment = """
+TS_AUTHKEY = [[TS_AUTHKEY]]
+LAN_SUBNET = [[LAN_SUBNET]]
+"""

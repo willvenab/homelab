@@ -46,7 +46,7 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
 ## After bootstrap (one-time, in the Komodo UI)
 
 1. Log in and change the admin password.
-2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret) and `OPENWEATHERMAP_API_KEY` (from openweathermap.org; mark it secret).
+2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret), `OPENWEATHERMAP_API_KEY` (from openweathermap.org; mark it secret), and the Tailscale variables from [Remote access with Tailscale](#remote-access-with-tailscale).
 3. **Settings → Providers**:
    - **Git accounts**: add provider `github.com`, username `willvenab`, and the token. Every stack and the sync clone with this account.
    - **Registry accounts**: add provider `ghcr.io`, username `willvenab`, and the same token. Only stacks that pull private images use it (see [Adding a service](#adding-a-service)).
@@ -76,6 +76,20 @@ If it stays red, the hub's errors aren't in `docker logs`: open `beszel.<DOMAIN>
 
 - `dial unix ...: no such file or directory`: **Host / IP** is wrong (most likely the host path `/srv/appdata/...`). Edit the system and set it to `/beszel_socket/beszel.sock`.
 - `handshake failed` / `unable to authenticate`: `BESZEL_AGENT_KEY` doesn't match the hub's public key, or the stack wasn't redeployed after you changed it.
+
+## Remote access with Tailscale
+
+The `tailscale` stack makes the server a [subnet router](https://tailscale.com/kb/1019/subnets), so your phone can reach the LAN (and every `*.<DOMAIN>` service) from anywhere, with no ports opened on your router.
+
+1. Create a free account at [tailscale.com](https://tailscale.com) and install the Tailscale app on your phone, logged into the same account.
+2. Admin console → **Settings → Keys → Generate auth key** (one-off, not ephemeral). In Komodo, add the variables `TS_AUTHKEY` (mark it secret) and `LAN_SUBNET` (your LAN in CIDR form, e.g. `192.168.1.0/24`).
+3. Re-run `bootstrap/install.sh` once if this box was set up before the Tailscale stack existed, so IP forwarding is enabled.
+4. Deploy the `tailscale` stack. In the admin console, open the `elitedesk` machine and:
+   - **Edit route settings** → approve the `LAN_SUBNET` route.
+   - **Disable key expiry**, so the server doesn't drop off the tailnet after 180 days.
+5. Admin console → **DNS → Nameservers → Add nameserver → Custom**: enter the server's LAN IP, tick **Restrict to domain** (split DNS) and enter `<DOMAIN>`. Now `*.<DOMAIN>` resolves through AdGuard on your phone whenever Tailscale is on. (Skip "Restrict to domain" and enable **Override DNS servers** instead if you also want AdGuard's ad blocking while away.)
+
+Tailscale has no local web UI, so its tile on `home.<DOMAIN>` links to the admin console instead.
 
 ## Adding a service
 
