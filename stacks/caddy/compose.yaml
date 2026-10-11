@@ -18,7 +18,9 @@ services:
       DOMAIN: ${DOMAIN}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Mount the folder, not the file: git replaces the Caddyfile on each
+      # pull, and a single-file mount would keep pointing at the old copy.
+      - ./conf:/etc/caddy:ro
       - /srv/appdata/caddy/data:/data
       - /srv/appdata/caddy/config:/config
 
