@@ -20,6 +20,9 @@ branch = "main"
 run_directory = "stacks/caddy"
 # Build the custom Caddy image (stacks/caddy/Dockerfile) before each deploy.
 run_build = true
+# Redeploy when the Caddyfile changes. Otherwise the reconcile procedure
+# only notices changes to compose.yaml.
+config_files = [{ path = "Caddyfile", requires = "Redeploy" }]
 environment = """
 DOMAIN = [[DOMAIN]]
 CLOUDFLARE_API_TOKEN = [[CLOUDFLARE_API_TOKEN]]
