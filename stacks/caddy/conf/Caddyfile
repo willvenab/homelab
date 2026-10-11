@@ -31,6 +31,11 @@
 		}
 	}
 
+	@homepage host home.{$DOMAIN}
+	handle @homepage {
+		reverse_proxy homepage:3000
+	}
+
 	# Unknown subdomain: plain 404.
 	handle {
 		respond "Unknown service" 404

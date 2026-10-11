@@ -11,6 +11,12 @@ services:
     mem_limit: 256m
     networks:
       - proxy
+    labels:
+      homepage.group: Infrastructure
+      homepage.name: AdGuard Home
+      homepage.icon: adguard-home.png
+      homepage.href: https://adguard.${DOMAIN}
+      homepage.description: DNS ad blocking
     ports:
       - 53:53/tcp
       - 53:53/udp

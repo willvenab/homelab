@@ -1,0 +1,14 @@
+- resources:
+    cpu: true
+    memory: true
+    disk: /
+- search:
+    provider: google
+    target: _blank
+- openweathermap:
+    label: Home
+    latitude: 51.4621
+    longitude:  -0.1973
+    units: metric # or imperial
+    provider: openweathermap
+    cache: 5 # Time in minutes to cache API responses, to stay within limits

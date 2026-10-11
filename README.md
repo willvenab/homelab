@@ -46,7 +46,7 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
 ## After bootstrap (one-time, in the Komodo UI)
 
 1. Log in and change the admin password.
-2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret) and `BESZEL_AGENT_KEY` (any value for now; mark it secret).
+2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret) and `OPENWEATHERMAP_API_KEY` (from openweathermap.org; mark it secret).
 3. **Settings → Providers**:
    - **Git accounts**: add provider `github.com`, username `willvenab`, and the token. Every stack and the sync clone with this account.
    - **Registry accounts**: add provider `ghcr.io`, username `willvenab`, and the same token. Only stacks that pull private images use it (see [Adding a service](#adding-a-service)).
@@ -85,6 +85,7 @@ If it stays red, the hub's errors aren't in `docker logs`: open `beszel.<DOMAIN>
    - Put data in `/srv/appdata/<name>/...` bind mounts.
    - Don't publish ports. Join the external `proxy` network and add a `@name host` matcher and `handle` block to `stacks/caddy/conf/Caddyfile`.
    - Put secrets in Komodo Variables, referenced as `[[NAME]]` in the stack's `environment`.
+   - Add `homepage.*` labels (group, name, icon, href, description) to the container with the web UI, so it shows up on `home.<DOMAIN>`. See `stacks/beszel/compose.yaml`. The `href` uses `${DOMAIN}`, so add `DOMAIN = [[DOMAIN]]` to the stack's `environment`.
 2. Add a `[[stack]]` block to `komodo/syncs/stacks.toml`. Keep `git_account = "willvenab"`, or Komodo can't clone the repo.
    - If the stack uses a private image from `ghcr.io/willvenab/...`, also add `registry_provider = "ghcr.io"` and `registry_account = "willvenab"` so Komodo logs in before pulling. Public images don't need this.
 3. Push.

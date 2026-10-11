@@ -1,0 +1,4 @@
+# The local Docker daemon. Containers with homepage.* labels are discovered
+# from here, and every listed service gets a running/stopped status dot.
+elitedesk:
+  socket: /var/run/docker.sock

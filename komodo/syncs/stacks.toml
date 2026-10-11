@@ -41,6 +41,7 @@ git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/beszel"
 environment = """
+DOMAIN = [[DOMAIN]]
 BESZEL_AGENT_KEY = [[BESZEL_AGENT_KEY]]
 """
 
@@ -56,3 +57,23 @@ repo = "willvenab/homelab"
 git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/adguard"
+environment = """
+DOMAIN = [[DOMAIN]]
+"""
+
+[[stack]]
+name = "homepage"
+description = "Dashboard linking to every service"
+tags = ["homelab", "dashboard"]
+deploy = true
+after = ["caddy"]
+[stack.config]
+server = "elitedesk"
+repo = "willvenab/homelab"
+git_account = "willvenab"
+branch = "main"
+run_directory = "stacks/homepage"
+environment = """
+DOMAIN = [[DOMAIN]]
+OPENWEATHERMAP_API_KEY = [[OPENWEATHERMAP_API_KEY]]
+"""

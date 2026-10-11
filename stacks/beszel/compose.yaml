@@ -10,6 +10,12 @@ services:
     mem_limit: 128m
     networks:
       - proxy
+    labels:
+      homepage.group: Monitoring
+      homepage.name: Beszel
+      homepage.icon: beszel.png
+      homepage.href: https://beszel.${DOMAIN}
+      homepage.description: Host and container stats
     volumes:
       - /srv/appdata/beszel/data:/beszel_data
       - /srv/appdata/beszel/socket:/beszel_socket
