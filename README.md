@@ -24,10 +24,16 @@ Komodo itself isn't in the sync. To upgrade it, bump the tags in `komodo/` and r
 4. On the server, as root:
    ```sh
    apt-get install -y git
-   git clone https://github.com/Willven/homelab.git /opt/homelab
+   git clone https://github.com/willvenab/homelab.git /opt/homelab
    /opt/homelab/bootstrap/install.sh
    ```
-   The script prints the Komodo URL and the generated admin password.
+   The repo is private, so `git clone` asks for credentials: enter `willvenab` as the username and the GitHub token (see [GitHub token](#github-token)) as the password. Git doesn't save it. The script prints the Komodo URL and the generated admin password.
+
+## GitHub token
+
+The repo and any images on `ghcr.io/willvenab/...` are private, so Komodo needs a token to clone and pull them. Create one **classic** personal access token (GitHub → **Settings → Developer settings → Personal access tokens → Tokens (classic)**) with the `repo` and `read:packages` scopes. Fine-grained tokens can't read ghcr.io packages. Give it an expiry and put a reminder in your calendar to rotate it.
+
+The token goes into the Komodo UI only (next section). The TOML files just name the account (`git_account = "willvenab"`).
 
 ## Domain and HTTPS
 
@@ -41,8 +47,10 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
 
 1. Log in and change the admin password.
 2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret) and `BESZEL_AGENT_KEY` (any value for now; mark it secret).
-3. If the repo is private, add a GitHub account/token under **Settings → Git Accounts** and set `git_account` in the TOML files.
-4. **Syncs → New**: name it `homelab`, repo `Willven/homelab`, branch `main`, resource path `komodo/syncs`. Run it. From then on the sync manages itself.
+3. **Settings → Providers**:
+   - **Git accounts**: add provider `github.com`, username `willvenab`, and the token. Every stack and the sync clone with this account.
+   - **Registry accounts**: add provider `ghcr.io`, username `willvenab`, and the same token. Only stacks that pull private images use it (see [Adding a service](#adding-a-service)).
+4. **Syncs → New**: name it `homelab`, repo `willvenab/homelab`, git account `willvenab`, branch `main`, resource path `komodo/syncs`. Run it. From then on the sync manages itself.
 5. Beszel: open `beszel.<DOMAIN>`, click **Add system**, copy the public key into `BESZEL_AGENT_KEY`, redeploy the `beszel` stack, and add the system with host `/beszel_socket/beszel.sock`.
 6. Point `*.<DOMAIN>` at the server. AdGuard's UI is only reachable through Caddy, so first add a temporary line to `/etc/hosts` on your computer: `<server IP>  adguard.<DOMAIN>`. Then open `adguard.<DOMAIN>`, finish the setup wizard (see `stacks/adguard/compose.yaml`), and add **Filters → DNS rewrites** → `*.<DOMAIN>` → `<server IP>`. Point your router's DHCP DNS at the server and remove the `/etc/hosts` line.
 
@@ -54,7 +62,8 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
    - Put data in `/srv/appdata/<name>/...` bind mounts.
    - Don't publish ports. Join the external `proxy` network and add a `@name host` matcher and `handle` block to `stacks/caddy/Caddyfile`.
    - Put secrets in Komodo Variables, referenced as `[[NAME]]` in the stack's `environment`.
-2. Add a `[[stack]]` block to `komodo/syncs/stacks.toml`.
+2. Add a `[[stack]]` block to `komodo/syncs/stacks.toml`. Keep `git_account = "willvenab"`, or Komodo can't clone the repo.
+   - If the stack uses a private image from `ghcr.io/willvenab/...`, also add `registry_provider = "ghcr.io"` and `registry_account = "willvenab"` so Komodo logs in before pulling. Public images don't need this.
 3. Push.
 
 ## Backups
