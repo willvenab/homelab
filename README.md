@@ -60,7 +60,7 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
    - Pin the image tag (never `:latest`).
    - Add `restart: unless-stopped` and a `mem_limit`.
    - Put data in `/srv/appdata/<name>/...` bind mounts.
-   - Don't publish ports. Join the external `proxy` network and add a `@name host` matcher and `handle` block to `stacks/caddy/Caddyfile`.
+   - Don't publish ports. Join the external `proxy` network and add a `@name host` matcher and `handle` block to `stacks/caddy/conf/Caddyfile`.
    - Put secrets in Komodo Variables, referenced as `[[NAME]]` in the stack's `environment`.
 2. Add a `[[stack]]` block to `komodo/syncs/stacks.toml`. Keep `git_account = "willvenab"`, or Komodo can't clone the repo.
    - If the stack uses a private image from `ghcr.io/willvenab/...`, also add `registry_provider = "ghcr.io"` and `registry_account = "willvenab"` so Komodo logs in before pulling. Public images don't need this.
