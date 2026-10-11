@@ -34,6 +34,7 @@ repo = "Willven/homelab"
 branch = "main"
 run_directory = "stacks/beszel"
 environment = """
+DOMAIN = [[DOMAIN]]
 BESZEL_AGENT_KEY = [[BESZEL_AGENT_KEY]]
 """
 
@@ -48,3 +49,21 @@ server = "elitedesk"
 repo = "Willven/homelab"
 branch = "main"
 run_directory = "stacks/adguard"
+environment = """
+DOMAIN = [[DOMAIN]]
+"""
+
+[[stack]]
+name = "homepage"
+description = "Dashboard linking to every service"
+tags = ["homelab", "dashboard"]
+deploy = true
+after = ["caddy"]
+[stack.config]
+server = "elitedesk"
+repo = "Willven/homelab"
+branch = "main"
+run_directory = "stacks/homepage"
+environment = """
+DOMAIN = [[DOMAIN]]
+"""

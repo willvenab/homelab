@@ -1,0 +1,10 @@
+# Most services come from Docker labels. Only list here what can't be labelled.
+# {{HOMEPAGE_VAR_DOMAIN}} is the Komodo DOMAIN variable.
+
+- Infrastructure:
+    - Komodo:
+        icon: komodo.png
+        href: https://komodo.{{HOMEPAGE_VAR_DOMAIN}}
+        description: Deploys every stack from git
+        server: elitedesk
+        container: komodo-core-1

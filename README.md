@@ -54,6 +54,7 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
    - Put data in `/srv/appdata/<name>/...` bind mounts.
    - Don't publish ports. Join the external `proxy` network and add a `@name host` matcher and `handle` block to `stacks/caddy/Caddyfile`.
    - Put secrets in Komodo Variables, referenced as `[[NAME]]` in the stack's `environment`.
+   - Add `homepage.*` labels (group, name, icon, href, description) to the container with the web UI, so it shows up on `home.<DOMAIN>`. See `stacks/beszel/compose.yaml`. The `href` uses `${DOMAIN}`, so add `DOMAIN = [[DOMAIN]]` to the stack's `environment`.
 2. Add a `[[stack]]` block to `komodo/syncs/stacks.toml`.
 3. Push.
 

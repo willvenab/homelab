@@ -1,0 +1,32 @@
+# Dashboard at home.<DOMAIN>. Services show up on their own: Homepage reads
+# the Docker socket and lists any container with homepage.* labels (see
+# stacks/beszel/compose.yaml for an example). Komodo isn't in the sync, so
+# it's listed by hand in config/services.yaml.
+#
+# Only the files in ./config are mounted, read-only, so Homepage can't write
+# into Komodo's clone of this repo. It copies its defaults for any other config
+# file into the container itself.
+
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:v2.5.0
+    restart: unless-stopped
+    mem_limit: 256m
+    networks:
+      - proxy
+    volumes:
+      - ./config/settings.yaml:/app/config/settings.yaml:ro
+      - ./config/docker.yaml:/app/config/docker.yaml:ro
+      - ./config/services.yaml:/app/config/services.yaml:ro
+      - ./config/widgets.yaml:/app/config/widgets.yaml:ro
+      - ./config/bookmarks.yaml:/app/config/bookmarks.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: home.${DOMAIN}
+      HOMEPAGE_VAR_DOMAIN: ${DOMAIN}
+      # Log to docker only, not to a file under /app/config.
+      LOG_TARGETS: stdout
+
+networks:
+  proxy:
+    external: true
