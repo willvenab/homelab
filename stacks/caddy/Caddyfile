@@ -1,0 +1,14 @@
+{
+	# LAN only: Caddy's own CA issues the certs (browsers will warn until you trust it).
+	# For real certs, point a domain at the box and use a DNS-challenge build of Caddy,
+	# then remove this line.
+	local_certs
+}
+
+komodo.{$DOMAIN} {
+	reverse_proxy core:9120
+}
+
+beszel.{$DOMAIN} {
+	reverse_proxy beszel:8090
+}

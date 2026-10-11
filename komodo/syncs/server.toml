@@ -1,0 +1,14 @@
+# The EliteDesk. Periphery connects out to Core (PERIPHERY_CONNECT_AS), so no address is needed.
+# The name must match KOMODO_FIRST_SERVER_NAME in compose.env.
+
+[[server]]
+name = "elitedesk"
+description = "HP EliteDesk running Debian"
+tags = ["homelab"]
+[server.config]
+enabled = true
+auto_prune = true
+mem_warning = 85.0
+mem_critical = 95.0
+disk_warning = 80.0
+disk_critical = 90.0

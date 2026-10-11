@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "docker-compose": {
+    "fileMatch": ["(^|/)compose\\.ya?ml$"]
+  },
+  "packageRules": [
+    {
+      "description": "Komodo's DB images can break on update; review these by hand",
+      "matchPackageNames": ["ghcr.io/ferretdb/**"],
+      "automerge": false,
+      "groupName": "ferretdb"
+    },
+    {
+      "description": "Patch bumps for app images are low risk",
+      "matchUpdateTypes": ["patch", "digest"],
+      "matchFileNames": ["stacks/**"],
+      "automerge": true
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+services:
+  caddy:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    mem_limit: 128m
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    networks:
+      - proxy
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/appdata/caddy/data:/data
+      - /srv/appdata/caddy/config:/config
+
+networks:
+  # Created by bootstrap/install.sh. Any stack with a web UI joins it,
+  # and Caddy reaches it by container name. Nothing else publishes ports.
+  proxy:
+    external: true

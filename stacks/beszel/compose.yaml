@@ -1,0 +1,31 @@
+# Hub (web UI) + agent on the same host, talking over a unix socket.
+# First deploy: open the hub, click "Add system", copy the public key into the
+# Komodo variable BESZEL_AGENT_KEY, redeploy, then add the system with
+# host/IP "/beszel_socket/beszel.sock".
+
+services:
+  beszel:
+    image: henrygd/beszel:0.21.0
+    restart: unless-stopped
+    mem_limit: 128m
+    networks:
+      - proxy
+    volumes:
+      - /srv/appdata/beszel/data:/beszel_data
+      - /srv/appdata/beszel/socket:/beszel_socket
+
+  beszel-agent:
+    image: henrygd/beszel-agent:0.21.0
+    restart: unless-stopped
+    mem_limit: 64m
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /srv/appdata/beszel/socket:/beszel_socket
+    environment:
+      LISTEN: /beszel_socket/beszel.sock
+      KEY: ${BESZEL_AGENT_KEY}
+
+networks:
+  proxy:
+    external: true

@@ -1,0 +1,35 @@
+# One [[stack]] per directory in stacks/. Komodo clones this repo and runs
+# `docker compose up` in run_directory. `environment` is written to .env there.
+# Variables in [[double brackets]] are set in the Komodo UI (Settings → Variables),
+# so secrets never land in git.
+#
+# To add a service: create stacks/<name>/compose.yaml, then copy a block below.
+
+[[stack]]
+name = "caddy"
+description = "Reverse proxy and TLS for every web UI"
+tags = ["homelab", "core"]
+deploy = true
+[stack.config]
+server = "elitedesk"
+repo = "Willven/homelab"
+branch = "main"
+run_directory = "stacks/caddy"
+environment = """
+DOMAIN = [[DOMAIN]]
+"""
+
+[[stack]]
+name = "beszel"
+description = "Lightweight host and container monitoring"
+tags = ["homelab", "monitoring"]
+deploy = true
+after = ["caddy"]
+[stack.config]
+server = "elitedesk"
+repo = "Willven/homelab"
+branch = "main"
+run_directory = "stacks/beszel"
+environment = """
+BESZEL_AGENT_KEY = [[BESZEL_AGENT_KEY]]
+"""

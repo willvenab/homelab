@@ -1,0 +1,39 @@
+# The sync that manages everything in this directory, including itself.
+# Create it once by hand in the UI with these same values; after that, it keeps itself up to date.
+
+[[resource_sync]]
+name = "homelab"
+description = "GitOps: declares every Komodo resource from komodo/syncs"
+tags = ["homelab"]
+[resource_sync.config]
+repo = "Willven/homelab"
+branch = "main"
+resource_path = ["komodo/syncs"]
+# Remove resources from Komodo when they are removed from these files.
+delete = true
+# Variables hold secrets, so they live only in the UI.
+include_variables = false
+
+# GitHub can't reach a LAN-only Komodo for webhooks, so poll instead:
+# pull the repo, apply resource changes, then redeploy only stacks whose files changed.
+[[procedure]]
+name = "gitops-reconcile"
+description = "Apply the sync and redeploy changed stacks"
+tags = ["homelab"]
+[procedure.config]
+schedule_format = "English"
+schedule = "Every 5 minutes"
+schedule_alert = false
+failure_alert = true
+
+[[procedure.config.stage]]
+name = "Sync resources"
+executions = [
+  { execution.type = "RunSync", execution.params.sync = "homelab" },
+]
+
+[[procedure.config.stage]]
+name = "Deploy changed stacks"
+executions = [
+  { execution.type = "BatchDeployStackIfChanged", execution.params.pattern = "*" },
+]

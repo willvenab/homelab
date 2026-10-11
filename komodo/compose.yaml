@@ -1,0 +1,81 @@
+# Komodo Core + Periphery on the FerretDB (Postgres) backend.
+# Adapted from https://github.com/moghtech/komodo/blob/main/compose/ferretdb.compose.yaml
+#
+# Deployed once by bootstrap/install.sh to /etc/komodo/core. This stack is not
+# managed by the resource sync: Komodo redeploying its own Core is fragile, so
+# upgrade it by bumping tags here and re-running install.sh.
+
+services:
+  postgres:
+    # Updates can be breaking: bump postgres-documentdb and ferretdb together.
+    image: ghcr.io/ferretdb/postgres-documentdb:17-0.107.0-ferretdb-2.7.0
+    labels:
+      komodo.skip: # Prevent Komodo from stopping with StopAllContainers
+    restart: unless-stopped
+    # Keep Postgres small; Komodo's dataset is tiny.
+    command: postgres -c shared_buffers=64MB -c max_connections=30
+    mem_limit: 384m
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${KOMODO_DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${KOMODO_DATABASE_PASSWORD}
+      POSTGRES_DB: postgres
+
+  ferretdb:
+    image: ghcr.io/ferretdb/ferretdb:2.7.0
+    labels:
+      komodo.skip:
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    mem_limit: 256m
+    volumes:
+      - ferretdb-state:/state
+    environment:
+      FERRETDB_POSTGRESQL_URL: postgres://${KOMODO_DATABASE_USERNAME}:${KOMODO_DATABASE_PASSWORD}@postgres:5432/postgres
+
+  core:
+    image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-2.3.3}
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - ferretdb
+    # Published on the LAN so the UI works before the reverse proxy exists.
+    # Once Caddy is serving komodo.<domain>, change this to 127.0.0.1:9120:9120.
+    ports:
+      - 9120:9120
+    networks:
+      - default
+      - proxy
+    env_file: ./compose.env
+    environment:
+      KOMODO_DATABASE_ADDRESS: ferretdb:27017
+    volumes:
+      - keys:/config/keys
+      - ${COMPOSE_KOMODO_BACKUPS_PATH}:/backups
+
+  periphery:
+    image: ghcr.io/moghtech/komodo-periphery:${COMPOSE_KOMODO_IMAGE_TAG:-2.3.3}
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - core
+    env_file: ./compose.env
+    volumes:
+      - keys:/config/keys
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/proc
+      # Must be the same path inside and outside the container.
+      - ${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}:${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}
+      # Stacks bind-mount app data from here.
+      - /srv/appdata:/srv/appdata
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  postgres-data:
+  ferretdb-state:
+  keys:

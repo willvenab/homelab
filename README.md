@@ -1,0 +1,62 @@
+# homelab
+
+A minimal Debian host on an HP EliteDesk. Every service is a Docker Compose stack, deployed from this repo by [Komodo](https://komo.do).
+
+```
+bootstrap/       one-time host setup (Docker, log limits, zram, Komodo)
+komodo/          Komodo's own compose stack + the resource sync (komodo/syncs/*.toml)
+stacks/<name>/   one directory per service: compose.yaml (+ config files)
+```
+
+## How deploys work
+
+1. You push to `main`.
+2. Every 5 minutes, Komodo's `gitops-reconcile` procedure runs the `homelab` sync, which applies `komodo/syncs/*.toml`, then redeploys any stack whose files changed.
+3. Renovate opens PRs to bump pinned image tags. Merging one redeploys that stack.
+
+Komodo itself isn't in the sync. To upgrade it, bump the tags in `komodo/` and re-run `bootstrap/install.sh`.
+
+## Fresh install
+
+1. Install Debian from the netinst ISO. At "Software selection", tick only **SSH server** and **standard system utilities**.
+2. BIOS: set **power on after AC loss**, and give the box a DHCP reservation on your router.
+3. Check that the CPU has AVX (`grep -c avx /proc/cpuinfo`). This repo uses FerretDB, so Komodo works either way, but some apps need AVX.
+4. On the server, as root:
+   ```sh
+   apt-get install -y git
+   git clone https://github.com/Willven/homelab.git /opt/homelab
+   /opt/homelab/bootstrap/install.sh
+   ```
+   The script prints the Komodo URL and the generated admin password.
+
+## After bootstrap (one-time, in the Komodo UI)
+
+1. Log in and change the admin password.
+2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`) and `BESZEL_AGENT_KEY` (any value for now; mark it secret).
+3. If the repo is private, add a GitHub account/token under **Settings → Git Accounts** and set `git_account` in the TOML files.
+4. **Syncs → New**: name it `homelab`, repo `Willven/homelab`, branch `main`, resource path `komodo/syncs`. Run it. From then on the sync manages itself.
+5. Beszel: open `beszel.<DOMAIN>`, click **Add system**, copy the public key into `BESZEL_AGENT_KEY`, redeploy the `beszel` stack, and add the system with host `/beszel_socket/beszel.sock`.
+6. Point `*.<DOMAIN>` at the server in your local DNS (router, Pi-hole, etc.).
+
+## Adding a service
+
+1. Create `stacks/<name>/compose.yaml`. Follow these conventions:
+   - Pin the image tag (never `:latest`).
+   - Add `restart: unless-stopped` and a `mem_limit`.
+   - Put data in `/srv/appdata/<name>/...` bind mounts.
+   - Don't publish ports. Join the external `proxy` network and add a block to `stacks/caddy/Caddyfile`.
+   - Put secrets in Komodo Variables, referenced as `[[NAME]]` in the stack's `environment`.
+2. Add a `[[stack]]` block to `komodo/syncs/stacks.toml`.
+3. Push.
+
+## Backups
+
+Back up `/srv/appdata` and `/etc/komodo` off the box (e.g. restic or Backrest to a NAS or B2). Komodo also writes dated database dumps to `/etc/komodo/backups`.
+
+## Notes for an old box
+
+- Docker logs use the `local` driver, capped at 30 MB per container (`bootstrap/daemon.json`). journald is capped at 200 MB.
+- zram swap uses compressed RAM instead of disk swap.
+- Docker bypasses ufw. Any port that isn't on the reverse proxy should be bound to `127.0.0.1`.
+- For Jellyfin or Plex, pass `/dev/dri` through so transcoding uses the Intel iGPU (QuickSync), not the CPU.
+- Run `powertop --auto-tune` (as a systemd oneshot) to cut idle power.
