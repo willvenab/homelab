@@ -1,6 +1,8 @@
 services:
   caddy:
-    image: caddy:2.11.7-alpine
+    # Built from ./Dockerfile (Caddy + Cloudflare DNS module).
+    build: .
+    image: homelab-caddy:local
     restart: unless-stopped
     mem_limit: 128m
     ports:
@@ -11,6 +13,7 @@ services:
       - proxy
     environment:
       DOMAIN: ${DOMAIN}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - /srv/appdata/caddy/data:/data

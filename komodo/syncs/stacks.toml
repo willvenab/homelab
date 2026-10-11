@@ -15,8 +15,11 @@ server = "elitedesk"
 repo = "Willven/homelab"
 branch = "main"
 run_directory = "stacks/caddy"
+# Build the custom Caddy image (stacks/caddy/Dockerfile) before each deploy.
+run_build = true
 environment = """
 DOMAIN = [[DOMAIN]]
+CLOUDFLARE_API_TOKEN = [[CLOUDFLARE_API_TOKEN]]
 """
 
 [[stack]]

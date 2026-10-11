@@ -1,18 +1,34 @@
-{
-	# LAN only: Caddy's own CA issues the certs (browsers will warn until you trust it).
-	# For real certs, point a domain at the box and use a DNS-challenge build of Caddy,
-	# then remove this line.
-	local_certs
-}
+# One wildcard cert for *.{$DOMAIN} from Let's Encrypt, via a Cloudflare DNS
+# challenge. Nothing needs to be reachable from the internet, and only the
+# wildcard (not each service name) shows up in public certificate logs.
+#
+# To add a service: add a matcher + handle pair below.
 
-komodo.{$DOMAIN} {
-	reverse_proxy core:9120
-}
+*.{$DOMAIN} {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		# Check the challenge record against public DNS, not AdGuard,
+		# whose rewrite for *.{$DOMAIN} would hide it.
+		resolvers 1.1.1.1 1.0.0.1
+	}
 
-beszel.{$DOMAIN} {
-	reverse_proxy beszel:8090
-}
+	@komodo host komodo.{$DOMAIN}
+	handle @komodo {
+		reverse_proxy core:9120
+	}
 
-adguard.{$DOMAIN} {
-	reverse_proxy adguard:3000
+	@beszel host beszel.{$DOMAIN}
+	handle @beszel {
+		reverse_proxy beszel:8090
+	}
+
+	@adguard host adguard.{$DOMAIN}
+	handle @adguard {
+		reverse_proxy adguard:3000
+	}
+
+	# Unknown subdomain: close the connection.
+	handle {
+		abort
+	}
 }
