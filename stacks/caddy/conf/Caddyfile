@@ -31,8 +31,8 @@
 		}
 	}
 
-	# Unknown subdomain: close the connection.
+	# Unknown subdomain: plain 404.
 	handle {
-		abort
+		respond "Unknown service" 404
 	}
 }
