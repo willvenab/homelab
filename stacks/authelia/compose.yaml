@@ -1,6 +1,7 @@
 # Single sign-on at auth.<DOMAIN>. Log in once and the session cookie on
 # .<DOMAIN> covers every service:
-# - Komodo and Beszel log in through Authelia's OpenID Connect provider.
+# - Komodo, Beszel and Home Assistant log in through Authelia's OpenID Connect
+#   provider.
 # - AdGuard and Homepage have no OIDC support, so Caddy asks Authelia before
 #   proxying to them (forward_auth, see stacks/caddy/conf/Caddyfile).
 #

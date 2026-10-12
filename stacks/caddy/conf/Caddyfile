@@ -65,6 +65,13 @@
 		reverse_proxy stirling-pdf:8080
 	}
 
+	# Home Assistant logs in through Authelia itself (OIDC), and runs on the
+	# host network.
+	@ha host ha.{$DOMAIN}
+	handle @ha {
+		reverse_proxy host.docker.internal:8123
+	}
+
 	# Unknown subdomain: plain 404.
 	handle {
 		respond "Unknown service" 404

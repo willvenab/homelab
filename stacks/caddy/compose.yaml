@@ -18,6 +18,9 @@ services:
         # auth.<DOMAIN> straight through Caddy, without a DNS round trip.
         aliases:
           - auth.${DOMAIN}
+    # Home Assistant uses host networking, so it's reached through the host.
+    extra_hosts:
+      - host.docker.internal:host-gateway
     environment:
       DOMAIN: ${DOMAIN}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
