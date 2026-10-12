@@ -111,3 +111,24 @@ environment = """
 TS_AUTHKEY = [[TS_AUTHKEY]]
 LAN_SUBNET = [[LAN_SUBNET]]
 """
+
+[[stack]]
+name = "osrs-tools"
+description = "Old School RuneScape money-making tools"
+tags = ["homelab", "apps"]
+deploy = true
+after = ["caddy"]
+[stack.config]
+server = "elitedesk"
+repo = "willvenab/homelab"
+git_account = "willvenab"
+branch = "main"
+run_directory = "stacks/osrs-tools"
+# The image is a private GHCR package: log in with the registry account
+# (Settings → Providers) before pulling.
+registry_provider = "ghcr.io"
+registry_account = "willvenab"
+environment = """
+DOMAIN = [[DOMAIN]]
+OSRS_PRICES_USER_AGENT = [[OSRS_PRICES_USER_AGENT]]
+"""

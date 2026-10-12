@@ -46,7 +46,7 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
 ## After bootstrap (one-time, in the Komodo UI)
 
 1. Log in and change the admin password.
-2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret), `OPENWEATHERMAP_API_KEY` (from openweathermap.org; mark it secret), and the Tailscale variables from [Remote access with Tailscale](#remote-access-with-tailscale).
+2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret), `OPENWEATHERMAP_API_KEY` (from openweathermap.org; mark it secret), `OSRS_PRICES_USER_AGENT` (e.g. `osrs-tools (homelab) - contact: you@example.com`; the OSRS Wiki asks for a way to reach you), and the Tailscale variables from [Remote access with Tailscale](#remote-access-with-tailscale).
 3. **Settings → Providers**:
    - **Git accounts**: add provider `github.com`, username `willvenab`, and the token. Every stack and the sync clone with this account.
    - **Registry accounts**: add provider `ghcr.io`, username `willvenab`, and the same token. Only stacks that pull private images use it (see [Adding a service](#adding-a-service)).
@@ -89,6 +89,7 @@ The `authelia` stack serves one login page at `auth.<DOMAIN>`. Once you've logge
 | Beszel   | OIDC, set up below |
 | AdGuard  | Caddy asks Authelia first (`import authelia` in the Caddyfile) |
 | Homepage | Caddy asks Authelia first |
+| OSRS Tools | Caddy asks Authelia first |
 
 Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` and are created by `stacks/authelia/setup.sh` (see [After bootstrap](#after-bootstrap-one-time-in-the-komodo-ui), step 5). Re-running it is safe; it prints the Komodo and Beszel client secrets again. If this box was set up before Authelia existed, `git -C /opt/homelab pull` first, then run it and redeploy `authelia`.
 

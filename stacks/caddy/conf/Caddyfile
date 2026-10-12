@@ -53,6 +53,12 @@
 		reverse_proxy homepage:3000
 	}
 
+	@osrs host osrs.{$DOMAIN}
+	handle @osrs {
+		import authelia
+		reverse_proxy osrs-tools:3000
+	}
+
 	# Unknown subdomain: plain 404.
 	handle {
 		respond "Unknown service" 404

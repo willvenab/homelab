@@ -1,0 +1,26 @@
+# OSRS Tools (github.com/willvenab/osrs-tools), a Next.js app with no state of
+# its own: prices come from the OSRS Wiki API and settings live in the browser.
+# The image is built by that repo's GitHub Actions when a v* tag is pushed.
+# The package is private, so Komodo logs in to ghcr.io before deploying
+# (registry_account in komodo/syncs/stacks.toml).
+
+services:
+  osrs-tools:
+    image: ghcr.io/willvenab/osrs-tools:0.1.0
+    restart: unless-stopped
+    mem_limit: 512m
+    networks:
+      - proxy
+    labels:
+      homepage.group: Apps
+      homepage.name: OSRS Tools
+      homepage.icon: mdi-sword-cross
+      homepage.href: https://osrs.${DOMAIN}
+      homepage.description: GE flipping, high alch and shop finders
+    environment:
+      # The OSRS Wiki asks API consumers to identify themselves.
+      OSRS_PRICES_USER_AGENT: ${OSRS_PRICES_USER_AGENT}
+
+networks:
+  proxy:
+    external: true
