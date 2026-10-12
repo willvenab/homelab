@@ -19,6 +19,12 @@ services:
     volumes:
       - /srv/appdata/beszel/data:/beszel_data
       - /srv/appdata/beszel/socket:/beszel_socket
+    environment:
+      # Create a Beszel user on first Authelia (OIDC) login. Users whose email
+      # matches an existing account are linked to it instead.
+      USER_CREATION: "true"
+      # Once Authelia login works, uncomment to hide the password form.
+      DISABLE_PASSWORD_AUTH: "true"
 
   beszel-agent:
     image: henrygd/beszel-agent:0.21.0

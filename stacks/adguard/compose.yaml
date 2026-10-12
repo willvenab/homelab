@@ -1,8 +1,8 @@
 # DNS ad blocker for the LAN. Port 53 is published because clients query it
 # directly; the web UI goes through Caddy like everything else.
-# First deploy: open adguard.<DOMAIN> and run the setup wizard. On the
-# "Admin Web Interface" step, set the port to 3000 (Caddy proxies to it).
-# Leave DNS on port 53. Then point your router's DHCP DNS at this box.
+# First deploy: open adguard.<DOMAIN> and run the setup wizard. Leave the
+# "Admin Web Interface" port on 80 (Caddy proxies to it) and DNS on port 53.
+# Then point your router's DHCP DNS at this box.
 
 services:
   adguard:

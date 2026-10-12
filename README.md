@@ -24,10 +24,16 @@ Komodo itself isn't in the sync. To upgrade it, bump the tags in `komodo/` and r
 4. On the server, as root:
    ```sh
    apt-get install -y git
-   git clone https://github.com/Willven/homelab.git /opt/homelab
+   git clone https://github.com/willvenab/homelab.git /opt/homelab
    /opt/homelab/bootstrap/install.sh
    ```
-   The script prints the Komodo URL and the generated admin password.
+   The repo is private, so `git clone` asks for credentials: enter `willvenab` as the username and the GitHub token (see [GitHub token](#github-token)) as the password. Git doesn't save it. The script prints the Komodo URL and the generated admin password.
+
+## GitHub token
+
+The repo and any images on `ghcr.io/willvenab/...` are private, so Komodo needs a token to clone and pull them. Create one **classic** personal access token (GitHub → **Settings → Developer settings → Personal access tokens → Tokens (classic)**) with the `repo` and `read:packages` scopes. Fine-grained tokens can't read ghcr.io packages. Give it an expiry and put a reminder in your calendar to rotate it.
+
+The token goes into the Komodo UI only (next section). The TOML files just name the account (`git_account = "willvenab"`).
 
 ## Domain and HTTPS
 
@@ -35,17 +41,114 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
 
 1. Buy a domain on Cloudflare, or move an existing domain's nameservers to Cloudflare (the free plan is fine). You can use the domain itself (`example.com`) or a subdomain (`home.example.com`) as `DOMAIN`.
 2. Cloudflare dashboard → **My Profile → API Tokens → Create Token** → "Edit zone DNS" template, limited to that zone. Keep the token for the next section.
-3. You don't need any public DNS records. The names only resolve on your LAN, through AdGuard (step 6 below).
+3. You don't need any public DNS records. The names only resolve on your LAN, through AdGuard (step 5 below).
 
 ## After bootstrap (one-time, in the Komodo UI)
 
 1. Log in and change the admin password.
-2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret) and `OPENWEATHERMAP_API_KEY` (from openweathermap.org; mark it secret) and `OSRS_PRICES_USER_AGENT` (e.g. `osrs-tools (homelab) - contact: you@example.com`; the OSRS Wiki asks for a way to reach you).
-3. If the repo is private, add a GitHub account/token under **Settings → Git Accounts** and set `git_account` in the TOML files.
-   The `osrs-tools` image is a private GHCR package: create a GitHub token (classic) with only `read:packages`, and add it under **Settings → Registry Accounts** with domain `ghcr.io` and username `willvenab`.
-4. **Syncs → New**: name it `homelab`, repo `Willven/homelab`, branch `main`, resource path `komodo/syncs`. Run it. From then on the sync manages itself.
-5. Beszel: open `beszel.<DOMAIN>`, click **Add system**, copy the public key into `BESZEL_AGENT_KEY`, redeploy the `beszel` stack, and add the system with host `/beszel_socket/beszel.sock`.
-6. Point `*.<DOMAIN>` at the server. AdGuard's UI is only reachable through Caddy, so first add a temporary line to `/etc/hosts` on your computer: `<server IP>  adguard.<DOMAIN>`. Then open `adguard.<DOMAIN>`, finish the setup wizard (see `stacks/adguard/compose.yaml`), and add **Filters → DNS rewrites** → `*.<DOMAIN>` → `<server IP>`. Point your router's DHCP DNS at the server and remove the `/etc/hosts` line.
+2. **Settings → Variables**: add `DOMAIN` (e.g. `home.example.com`), `CLOUDFLARE_API_TOKEN` (mark it secret), `BESZEL_AGENT_KEY` (any value for now; mark it secret), `OPENWEATHERMAP_API_KEY` (from openweathermap.org; mark it secret), `OSRS_PRICES_USER_AGENT` (e.g. `osrs-tools (homelab) - contact: you@example.com`; the OSRS Wiki asks for a way to reach you), and the Tailscale variables from [Remote access with Tailscale](#remote-access-with-tailscale).
+3. **Settings → Providers**:
+   - **Git accounts**: add provider `github.com`, username `willvenab`, and the token. Every stack and the sync clone with this account.
+   - **Registry accounts**: add provider `ghcr.io`, username `willvenab`, and the same token. Only stacks that pull private images use it (see [Adding a service](#adding-a-service)).
+4. **Syncs → New**: name it `homelab`, repo `willvenab/homelab`, git account `willvenab`, branch `main`, resource path `komodo/syncs`. Run it. From then on the sync manages itself.
+5. Create Authelia's secrets and your login: on the server, as root, run `/opt/homelab/stacks/authelia/setup.sh`, then redeploy the `authelia` stack. Caddy asks Authelia before showing AdGuard, so this has to come first.
+6. Point `*.<DOMAIN>` at the server. AdGuard's UI is only reachable through Caddy, so first add a temporary line to `/etc/hosts` on your computer: `<server IP>  adguard.<DOMAIN> auth.<DOMAIN>`. Then open `adguard.<DOMAIN>`, log in with your Authelia user, finish the setup wizard (see `stacks/adguard/compose.yaml`), and add **Filters → DNS rewrites** → `*.<DOMAIN>` → `<server IP>`. Point your router's DHCP DNS at the server and remove the `/etc/hosts` line.
+7. Set up Beszel (see [Beszel](#beszel) below).
+8. Finish single sign-on (see [Single sign-on](#single-sign-on) below).
+
+## Beszel
+
+The hub (web UI) and the agent run in the same stack and talk over a unix socket, so the agent doesn't need a port. Both containers mount `/srv/appdata/beszel/socket` at `/beszel_socket`, so Beszel must always be given the in-container path `/beszel_socket/beszel.sock`, never the host path. The agent only accepts the hub if it has the hub's public key, so the first deploy takes two passes:
+
+1. Open `beszel.<DOMAIN>` and create the admin account (the first visit asks for one).
+2. Click **Add system**. Copy the **Public key** shown in the dialog, then close the dialog without adding anything. The key belongs to the hub and stays the same, so you can come back for it later.
+3. In Komodo, set the `BESZEL_AGENT_KEY` variable to that key (the whole `ssh-ed25519 AAAA...` line) and redeploy the `beszel` stack.
+4. Back in Beszel, click **Add system** again and fill it in:
+
+   | Field     | Value                        |
+   |-----------|------------------------------|
+   | Name      | `elitedesk` (any name)       |
+   | Host / IP | `/beszel_socket/beszel.sock` |
+   | Port      | leave the default (`45876`); it's ignored for a socket path |
+
+   Ignore the `docker compose` snippet in the dialog; `stacks/beszel/compose.yaml` already does that.
+5. Click **Add system**. The system should go green within a minute.
+
+If it stays red, the hub's errors aren't in `docker logs`: open `beszel.<DOMAIN>/_/` → **Logs** and filter with `level > 0`. The hub logs `System down` once when a system goes down, not on every retry, so an old entry may still be the current cause.
+
+- `dial unix ...: no such file or directory`: **Host / IP** is wrong (most likely the host path `/srv/appdata/...`). Edit the system and set it to `/beszel_socket/beszel.sock`.
+- `handshake failed` / `unable to authenticate`: `BESZEL_AGENT_KEY` doesn't match the hub's public key, or the stack wasn't redeployed after you changed it.
+
+## Single sign-on
+
+The `authelia` stack serves one login page at `auth.<DOMAIN>`. Once you've logged in there, the session cookie covers every `*.<DOMAIN>` service for a week (a month if you tick **Remember me**).
+
+| Service  | How it logs in |
+|----------|----------------|
+| Komodo   | OIDC: a "Log in with Authelia" flow, set up below |
+| Beszel   | OIDC, set up below |
+| AdGuard  | Caddy asks Authelia first (`import authelia` in the Caddyfile) |
+| Homepage | Caddy asks Authelia first |
+| OSRS Tools | Caddy asks Authelia first |
+
+Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` and are created by `stacks/authelia/setup.sh` (see [After bootstrap](#after-bootstrap-one-time-in-the-komodo-ui), step 5). Re-running it is safe; it prints the Komodo and Beszel client secrets again. If this box was set up before Authelia existed, `git -C /opt/homelab pull` first, then run it and redeploy `authelia`.
+
+**Komodo.** Its settings aren't in the sync, so this is done on the server:
+
+1. In `/etc/komodo/core/compose.env`, set `KOMODO_HOST=https://komodo.<DOMAIN>` (exactly: Komodo builds the OIDC redirect URL from it) and add the "Single sign-on" block from `komodo/compose.env.example`, uncommented, with your domain and the Komodo client secret. A `compose.env` made before Authelia existed doesn't have that block, so copy it from the example.
+2. Komodo needs to create a user for you on your first Authelia login, but `KOMODO_DISABLE_USER_REGISTRATION=true` blocks that ("User registration is disabled"). On 2.3.3, `KOMODO_DISABLE_OIDC_USER_REGISTRATION=false` alone didn't get around it, so set `KOMODO_DISABLE_USER_REGISTRATION=false` for now.
+3. Restart Komodo with the new settings, and check that they took effect:
+   ```sh
+   docker compose -p komodo -f /etc/komodo/core/compose.yaml --env-file /etc/komodo/core/compose.env up -d
+   docker exec komodo-core-1 env | grep -E 'KOMODO_HOST|OIDC|REGISTRATION'
+   ```
+   This is the last line of `bootstrap/install.sh`. Running the whole script works too, but it also restarts Docker and every container.
+4. Open `komodo.<DOMAIN>` in a private window. It redirects to Authelia and back, then says your user is disabled: that's expected, since it's a new Komodo user.
+5. Open `komodo.<DOMAIN>/login?disableAutoLogin=true`, log in as `admin`, and under **Settings → Users** enable the new user and make it an admin.
+6. Set `KOMODO_DISABLE_USER_REGISTRATION=true` again and re-run the `docker compose` command from step 3. Existing users can still log in. From then on, use Authelia. Keep the local `admin` password somewhere safe as a way in if Authelia is down.
+
+**Beszel.** Use the same email in Authelia as your Beszel account, so Beszel links the two instead of creating a second user.
+
+This is done in the PocketBase admin at `beszel.<DOMAIN>/_/` (type the `/_/` in yourself; Beszel's own **Settings** page doesn't have these options). Log in with your Beszel admin email and password.
+
+1. **Settings** (gear icon in the left sidebar) → **Application**: at the bottom, turn off **Hide collection create and edit controls** and save.
+2. **Collections** (database icon) → **users** → ⚙ next to the collection name → **Options → OAuth2**: enable it, **Add provider → OpenID Connect**, and fill in the fields below. Replace `<DOMAIN>` with your real domain in all three URLs, with no trailing slash:
+
+   | Field         | Value |
+   |---------------|-------|
+   | Client ID     | `beszel` |
+   | Client secret | the Beszel secret from `setup.sh` |
+   | Display name  | `Authelia` |
+   | Auth URL      | `https://auth.<DOMAIN>/api/oidc/authorization` |
+   | Token URL     | `https://auth.<DOMAIN>/api/oidc/token` |
+   | User info URL | `https://auth.<DOMAIN>/api/oidc/userinfo` |
+
+3. Save, log out of Beszel and log back in with **Authelia**.
+4. Once that works, turn **Hide collection create and edit controls** back on, so the collections can't be edited by accident. You can also uncomment `DISABLE_PASSWORD_AUTH` in `stacks/beszel/compose.yaml` to hide the password form.
+
+If the login fails with `Failed to fetch OAuth2 user`, the token step worked (so the client ID, secret and redirect are fine) but fetching your profile didn't. Check the **User info URL** first. The real error is in `/_/` → **Logs** (filter with `level > 0`).
+
+**AdGuard.** Authelia now guards it, so drop AdGuard's own login: in `/srv/appdata/adguard/conf/AdGuardHome.yaml`, replace the `users:` list with `users: []` and redeploy the `adguard` stack.
+
+**Adding users.** Edit `/srv/appdata/authelia/users/users_database.yml`; Authelia picks up changes without a restart. The file's header shows how to hash a password.
+
+**Two-factor.** Everything uses `one_factor` (password only). To also require a passkey or TOTP code, change the policies in `stacks/authelia/config/configuration.yml` to `two_factor`. Register the device at `auth.<DOMAIN>` first. Authelia has no mail server, so the confirmation code it "emails" is written to `/srv/appdata/authelia/data/notification.txt`.
+
+If a login fails, check the `authelia` stack's log in Komodo. Komodo and Beszel reach `auth.<DOMAIN>` through a network alias on Caddy (`stacks/caddy/compose.yaml`), not through DNS.
+
+## Remote access with Tailscale
+
+The `tailscale` stack makes the server a [subnet router](https://tailscale.com/kb/1019/subnets), so your phone can reach the LAN (and every `*.<DOMAIN>` service) from anywhere, with no ports opened on your router.
+
+1. Create a free account at [tailscale.com](https://tailscale.com) and install the Tailscale app on your phone, logged into the same account.
+2. Admin console → **Settings → Keys → Generate auth key** (one-off, not ephemeral). In Komodo, add the variables `TS_AUTHKEY` (mark it secret) and `LAN_SUBNET` (your LAN in CIDR form, e.g. `192.168.1.0/24`). Use the network address, ending in `.0` for a `/24`, not the server's own IP: `192.168.1.10/24` is rejected ("non-address bits set") and the container crash-loops.
+3. Re-run `bootstrap/install.sh` once if this box was set up before the Tailscale stack existed, so IP forwarding is enabled.
+4. Deploy the `tailscale` stack. In the admin console, open the `elitedesk` machine and do the steps below. If the machine doesn't appear, it never logged in: check the container's logs (Komodo → `tailscale` stack → **Log**). The usual causes are a bad `LAN_SUBNET` or a rejected auth key. If the key was rejected, generate a new one, update `TS_AUTHKEY` and redeploy.
+   - **Edit route settings** → approve the `LAN_SUBNET` route.
+   - **Disable key expiry**, so the server doesn't drop off the tailnet after 180 days.
+5. Admin console → **DNS → Nameservers → Add nameserver → Custom**: enter the server's LAN IP, tick **Restrict to domain** (split DNS) and enter `<DOMAIN>`. Now `*.<DOMAIN>` resolves through AdGuard on your phone whenever Tailscale is on. (Skip "Restrict to domain" and enable **Override DNS servers** instead if you also want AdGuard's ad blocking while away.)
+
+Tailscale has no local web UI, so its tile on `home.<DOMAIN>` links to the admin console instead.
 
 ## Adding a service
 
@@ -53,10 +156,12 @@ Caddy gets one real Let's Encrypt wildcard cert for `*.<DOMAIN>` using a DNS cha
    - Pin the image tag (never `:latest`).
    - Add `restart: unless-stopped` and a `mem_limit`.
    - Put data in `/srv/appdata/<name>/...` bind mounts.
-   - Don't publish ports. Join the external `proxy` network and add a `@name host` matcher and `handle` block to `stacks/caddy/Caddyfile`.
+   - Don't publish ports. Join the external `proxy` network and add a `@name host` matcher and `handle` block to `stacks/caddy/conf/Caddyfile`.
+   - Log in through Authelia. If the app supports OIDC, add a client to `stacks/authelia/config/configuration.yml` (Authelia has [guides per app](https://www.authelia.com/integration/openid-connect/clients/introduction/)) and a `<name>_client_secret` to the loop in `stacks/authelia/setup.sh`. Otherwise add `import authelia` to its `handle` block.
    - Put secrets in Komodo Variables, referenced as `[[NAME]]` in the stack's `environment`.
    - Add `homepage.*` labels (group, name, icon, href, description) to the container with the web UI, so it shows up on `home.<DOMAIN>`. See `stacks/beszel/compose.yaml`. The `href` uses `${DOMAIN}`, so add `DOMAIN = [[DOMAIN]]` to the stack's `environment`.
-2. Add a `[[stack]]` block to `komodo/syncs/stacks.toml`.
+2. Add a `[[stack]]` block to `komodo/syncs/stacks.toml`. Keep `git_account = "willvenab"`, or Komodo can't clone the repo.
+   - If the stack uses a private image from `ghcr.io/willvenab/...`, also add `registry_provider = "ghcr.io"` and `registry_account = "willvenab"` so Komodo logs in before pulling. Public images don't need this.
 3. Push.
 
 ## Backups

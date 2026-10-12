@@ -6,7 +6,8 @@ name = "homelab"
 description = "GitOps: declares every Komodo resource from komodo/syncs"
 tags = ["homelab"]
 [resource_sync.config]
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 resource_path = ["komodo/syncs"]
 # Remove resources from Komodo when they are removed from these files.

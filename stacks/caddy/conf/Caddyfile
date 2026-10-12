@@ -2,7 +2,16 @@
 # challenge. Nothing needs to be reachable from the internet, and only the
 # wildcard (not each service name) shows up in public certificate logs.
 #
-# To add a service: add a matcher + handle pair below.
+# To add a service: add a matcher + handle pair below. If the app has no login
+# of its own (or no OIDC support), add `import authelia` before reverse_proxy.
+
+# Ask Authelia before proxying. Not logged in: redirect to auth.{$DOMAIN}.
+(authelia) {
+	forward_auth authelia:9091 {
+		uri /api/authz/forward-auth
+		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+	}
+}
 
 *.{$DOMAIN} {
 	tls {
@@ -12,6 +21,12 @@
 		resolvers 1.1.1.1 1.0.0.1
 	}
 
+	@auth host auth.{$DOMAIN}
+	handle @auth {
+		reverse_proxy authelia:9091
+	}
+
+	# Komodo and Beszel log in through Authelia themselves (OIDC).
 	@komodo host komodo.{$DOMAIN}
 	handle @komodo {
 		reverse_proxy core:9120
@@ -24,21 +39,28 @@
 
 	@adguard host adguard.{$DOMAIN}
 	handle @adguard {
-		reverse_proxy adguard:3000
+		import authelia
+		# The UI is on 80 once set up; before that, the setup wizard is on 3000.
+		reverse_proxy adguard:80 adguard:3000 {
+			lb_policy first
+			lb_try_duration 2s
+		}
 	}
 
 	@homepage host home.{$DOMAIN}
 	handle @homepage {
+		import authelia
 		reverse_proxy homepage:3000
 	}
 
 	@osrs host osrs.{$DOMAIN}
 	handle @osrs {
+		import authelia
 		reverse_proxy osrs-tools:3000
 	}
 
-	# Unknown subdomain: close the connection.
+	# Unknown subdomain: plain 404.
 	handle {
-		abort
+		respond "Unknown service" 404
 	}
 }

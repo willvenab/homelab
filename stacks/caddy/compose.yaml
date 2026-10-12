@@ -3,6 +3,9 @@ services:
     # Built from ./Dockerfile (Caddy + Cloudflare DNS module).
     build: .
     image: homelab-caddy:local
+    # Never pull this image: it only exists locally. Without this, the
+    # `docker compose pull` Komodo runs on deploy fails on Docker Hub.
+    pull_policy: build
     restart: unless-stopped
     mem_limit: 128m
     ports:
@@ -10,12 +13,18 @@ services:
       - 443:443
       - 443:443/udp
     networks:
-      - proxy
+      proxy:
+        # Lets containers (Komodo, Beszel) reach Authelia's OIDC endpoints at
+        # auth.<DOMAIN> straight through Caddy, without a DNS round trip.
+        aliases:
+          - auth.${DOMAIN}
     environment:
       DOMAIN: ${DOMAIN}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Mount the folder, not the file: git replaces the Caddyfile on each
+      # pull, and a single-file mount would keep pointing at the old copy.
+      - ./conf:/etc/caddy:ro
       - /srv/appdata/caddy/data:/data
       - /srv/appdata/caddy/config:/config
 

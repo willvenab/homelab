@@ -1,0 +1,43 @@
+# Single sign-on at auth.<DOMAIN>. Log in once and the session cookie on
+# .<DOMAIN> covers every service:
+# - Komodo and Beszel log in through Authelia's OpenID Connect provider.
+# - AdGuard and Homepage have no OIDC support, so Caddy asks Authelia before
+#   proxying to them (forward_auth, see stacks/caddy/conf/Caddyfile).
+#
+# Secrets, keys and the user list live in /srv/appdata/authelia, never in git.
+# First deploy: run ./setup.sh on the server as root to create them (see
+# README → "Single sign-on").
+
+services:
+  authelia:
+    image: authelia/authelia:4.39.28
+    restart: unless-stopped
+    # Password hashes are argon2id, which needs ~64 MB per login attempt.
+    mem_limit: 256m
+    networks:
+      - proxy
+    labels:
+      homepage.group: Infrastructure
+      homepage.name: Authelia
+      homepage.icon: authelia.png
+      homepage.href: https://auth.${DOMAIN}
+      homepage.description: Single sign-on
+    volumes:
+      # Mount the folder, not the file, so git pulls are picked up (as for Caddy).
+      - ./config:/config:ro
+      - /srv/appdata/authelia/secrets:/secrets:ro
+      - /srv/appdata/authelia/users:/users
+      - /srv/appdata/authelia/data:/data
+    environment:
+      DOMAIN: ${DOMAIN}
+      TZ: Etc/UTC
+      # Lets configuration.yml use {{ env "..." }} and {{ secret "..." }}.
+      X_AUTHELIA_CONFIG_FILTERS: template
+      AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE: /secrets/jwt_secret
+      AUTHELIA_SESSION_SECRET_FILE: /secrets/session_secret
+      AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE: /secrets/storage_encryption_key
+      AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET_FILE: /secrets/oidc_hmac_secret
+
+networks:
+  proxy:
+    external: true

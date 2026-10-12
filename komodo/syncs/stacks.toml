@@ -1,5 +1,7 @@
 # One [[stack]] per directory in stacks/. Komodo clones this repo and runs
 # `docker compose up` in run_directory. `environment` is written to .env there.
+# git_account names the GitHub account added in the Komodo UI (Settings → Providers),
+# which this private repo needs; its token never lands in git.
 # Variables in [[double brackets]] are set in the Komodo UI (Settings → Variables),
 # so secrets never land in git.
 #
@@ -12,14 +14,36 @@ tags = ["homelab", "core"]
 deploy = true
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/caddy"
 # Build the custom Caddy image (stacks/caddy/Dockerfile) before each deploy.
 run_build = true
+# Restart Caddy when the Caddyfile changes, so it reloads it. Otherwise the
+# reconcile procedure only notices changes to compose.yaml.
+config_files = [{ path = "conf/Caddyfile", requires = "Restart" }]
 environment = """
 DOMAIN = [[DOMAIN]]
 CLOUDFLARE_API_TOKEN = [[CLOUDFLARE_API_TOKEN]]
+"""
+
+[[stack]]
+name = "authelia"
+description = "Single sign-on for every web UI"
+tags = ["homelab", "core"]
+deploy = true
+after = ["caddy"]
+[stack.config]
+server = "elitedesk"
+repo = "willvenab/homelab"
+git_account = "willvenab"
+branch = "main"
+run_directory = "stacks/authelia"
+# Restart Authelia when its config changes, so it reloads it.
+config_files = [{ path = "config/configuration.yml", requires = "Restart" }]
+environment = """
+DOMAIN = [[DOMAIN]]
 """
 
 [[stack]]
@@ -30,7 +54,8 @@ deploy = true
 after = ["caddy"]
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/beszel"
 environment = """
@@ -46,7 +71,8 @@ deploy = true
 after = ["caddy"]
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/adguard"
 environment = """
@@ -61,12 +87,29 @@ deploy = true
 after = ["caddy"]
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/homepage"
 environment = """
 DOMAIN = [[DOMAIN]]
 OPENWEATHERMAP_API_KEY = [[OPENWEATHERMAP_API_KEY]]
+"""
+
+[[stack]]
+name = "tailscale"
+description = "Subnet router for remote access to the LAN"
+tags = ["homelab", "network"]
+deploy = true
+[stack.config]
+server = "elitedesk"
+repo = "willvenab/homelab"
+git_account = "willvenab"
+branch = "main"
+run_directory = "stacks/tailscale"
+environment = """
+TS_AUTHKEY = [[TS_AUTHKEY]]
+LAN_SUBNET = [[LAN_SUBNET]]
 """
 
 [[stack]]
@@ -77,11 +120,12 @@ deploy = true
 after = ["caddy"]
 [stack.config]
 server = "elitedesk"
-repo = "Willven/homelab"
+repo = "willvenab/homelab"
+git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/osrs-tools"
-# The image is a private GHCR package: log in with the token saved under
-# Settings → Registry Accounts before pulling.
+# The image is a private GHCR package: log in with the registry account
+# (Settings → Providers) before pulling.
 registry_provider = "ghcr.io"
 registry_account = "willvenab"
 environment = """

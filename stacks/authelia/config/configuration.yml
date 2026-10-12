@@ -1,0 +1,96 @@
+# Authelia config. Templating is on (X_AUTHELIA_CONFIG_FILTERS in compose.yaml):
+# the env "DOMAIN" template is the Komodo DOMAIN variable, and the secret
+# template reads a file created by setup.sh. The other secrets come in as
+# *_FILE env vars. Templates run over comments too, so never write double
+# braces in a comment here.
+# Reference: https://www.authelia.com/configuration/prologue/introduction/
+
+server:
+  address: 'tcp://:9091/'
+
+log:
+  level: 'info'
+
+theme: 'auto'
+
+# Users are in /srv/appdata/authelia/users/users_database.yml (created by
+# setup.sh). Edits there are picked up without a restart.
+authentication_backend:
+  # No mail server, so there is no way to send a reset link.
+  password_reset:
+    disable: true
+  file:
+    path: '/users/users_database.yml'
+    watch: true
+
+# Everything needs a login. Change to 'two_factor' to also require a passkey or
+# TOTP code (set them up at auth.<DOMAIN>; the one-time confirmation code is
+# written to /srv/appdata/authelia/data/notification.txt).
+access_control:
+  default_policy: 'deny'
+  rules:
+    - domain: '*.{{ env "DOMAIN" }}'
+      policy: 'one_factor'
+
+# Defaults are 1 hour / 5 minutes idle, which means logging in all the time.
+session:
+  inactivity: '1 day'
+  expiration: '1 week'
+  remember_me: '1 month'
+  cookies:
+    - domain: '{{ env "DOMAIN" }}'
+      authelia_url: 'https://auth.{{ env "DOMAIN" }}'
+      default_redirection_url: 'https://home.{{ env "DOMAIN" }}'
+
+storage:
+  local:
+    path: '/data/db.sqlite3'
+
+# No mail server: messages (e.g. confirmation codes) are written to this file.
+notifier:
+  filesystem:
+    filename: '/data/notification.txt'
+
+# OpenID Connect provider for apps with built-in SSO support. Each client
+# secret is a hash; setup.sh prints the plain secret to paste into the app.
+identity_providers:
+  oidc:
+    jwks:
+      - key: {{ secret "/secrets/oidc_jwks.pem" | mindent 10 "|" | msquote }}
+    clients:
+      # https://www.authelia.com/integration/openid-connect/clients/komodo/
+      - client_id: 'komodo'
+        client_name: 'Komodo'
+        client_secret: '{{ secret "/secrets/komodo_client_secret.digest" }}'
+        public: false
+        authorization_policy: 'one_factor'
+        # Skip the "allow Komodo to see your profile?" screen.
+        consent_mode: 'implicit'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://komodo.{{ env "DOMAIN" }}/auth/oidc/callback'
+        scopes: ['openid', 'profile', 'email']
+        response_types: ['code']
+        grant_types: ['authorization_code']
+        access_token_signed_response_alg: 'none'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'
+
+      # https://www.authelia.com/integration/openid-connect/clients/beszel/
+      - client_id: 'beszel'
+        client_name: 'Beszel'
+        client_secret: '{{ secret "/secrets/beszel_client_secret.digest" }}'
+        public: false
+        authorization_policy: 'one_factor'
+        consent_mode: 'implicit'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://beszel.{{ env "DOMAIN" }}/api/oauth2-redirect'
+        scopes: ['openid', 'email', 'profile']
+        response_types: ['code']
+        grant_types: ['authorization_code']
+        access_token_signed_response_alg: 'none'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'
