@@ -1,6 +1,8 @@
 # Authelia config. Templating is on (X_AUTHELIA_CONFIG_FILTERS in compose.yaml):
-# {{ env "DOMAIN" }} is the Komodo DOMAIN variable, and {{ secret "/secrets/..." }}
-# reads a file created by setup.sh. The other secrets come in as *_FILE env vars.
+# the env "DOMAIN" template is the Komodo DOMAIN variable, and the secret
+# template reads a file created by setup.sh. The other secrets come in as
+# *_FILE env vars. Templates run over comments too, so never write double
+# braces in a comment here.
 # Reference: https://www.authelia.com/configuration/prologue/introduction/
 
 server:
