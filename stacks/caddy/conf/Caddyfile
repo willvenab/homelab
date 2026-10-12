@@ -65,7 +65,8 @@
 		reverse_proxy stirling-pdf:8080
 	}
 
-	# Home Assistant has its own login, and runs on the host network.
+	# Home Assistant logs in through Authelia itself (OIDC), and runs on the
+	# host network.
 	@ha host ha.{$DOMAIN}
 	handle @ha {
 		reverse_proxy host.docker.internal:8123

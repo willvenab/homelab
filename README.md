@@ -91,7 +91,7 @@ The `authelia` stack serves one login page at `auth.<DOMAIN>`. Once you've logge
 | Homepage | Caddy asks Authelia first |
 | OSRS Tools | Caddy asks Authelia first |
 | Stirling-PDF | Caddy asks Authelia first |
-| Home Assistant | Its own login (the companion app can't get past Authelia) |
+| Home Assistant | OIDC through the `hass-oidc-auth` integration, set up below |
 
 Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` and are created by `stacks/authelia/setup.sh` (see [After bootstrap](#after-bootstrap-one-time-in-the-komodo-ui), step 5). Re-running it is safe; it prints the Komodo and Beszel client secrets again. If this box was set up before Authelia existed, `git -C /opt/homelab pull` first, then run it and redeploy `authelia`.
 
@@ -129,6 +129,30 @@ This is done in the PocketBase admin at `beszel.<DOMAIN>/_/` (type the `/_/` in 
 4. Once that works, turn **Hide collection create and edit controls** back on, so the collections can't be edited by accident. You can also uncomment `DISABLE_PASSWORD_AUTH` in `stacks/beszel/compose.yaml` to hide the password form.
 
 If the login fails with `Failed to fetch OAuth2 user`, the token step worked (so the client ID, secret and redirect are fine) but fetching your profile didn't. Check the **User info URL** first. The real error is in `/_/` → **Logs** (filter with `level > 0`).
+
+**Home Assistant.** Home Assistant has no built-in OIDC, so it uses the [hass-oidc-auth](https://github.com/christiaangoossens/hass-oidc-auth) integration, installed through HACS. The Authelia client is a public one (PKCE, no secret), so `setup.sh` has nothing to print for it. Members of the Authelia `admins` group become Home Assistant admins.
+
+1. Deploy the `homeassistant` stack, make the `http:` edit described at the top of `stacks/homeassistant/compose.yaml`, and restart it. Open `ha.<DOMAIN>` and create the owner account. Keep its password somewhere safe: it's the way in if Authelia is down.
+2. Install HACS: `docker exec -it homeassistant-homeassistant-1 bash -c "wget -O - https://get.hacs.xyz | bash -"`, restart the stack, then **Settings → Devices & services → Add integration → HACS** and link it to a GitHub account.
+3. In HACS, search for **OpenID Connect** (`hass-oidc-auth`) and download it.
+4. Add this to `/srv/appdata/homeassistant/config/configuration.yaml`, with your real domain, and restart the stack:
+   ```yaml
+   auth_oidc:
+     client_id: homeassistant
+     discovery_url: https://auth.<DOMAIN>/.well-known/openid-configuration
+     display_name: Authelia
+     roles:
+       admin: admins
+     features:
+       # Go straight to Authelia, skipping the "how do you want to log in?"
+       # screen. The local login is still at ha.<DOMAIN>/?skip_oidc_redirect=true
+       default_redirect: true
+   ```
+5. Open `ha.<DOMAIN>` in a private window: it redirects to Authelia and back, and creates a new Home Assistant user for you.
+
+Home Assistant runs on the host network, so it looks up `auth.<DOMAIN>` through the server's own DNS, not Caddy's network alias. If step 5 fails with a discovery error, check that `getent hosts auth.<DOMAIN>` on the server returns the server's IP (the server's DNS must go through AdGuard).
+
+The companion app can't use the browser redirect: it shows a code instead, which you enter at `ha.<DOMAIN>` in a browser to link the app.
 
 **AdGuard.** Authelia now guards it, so drop AdGuard's own login: in `/srv/appdata/adguard/conf/AdGuardHome.yaml`, replace the `users:` list with `users: []` and redeploy the `adguard` stack.
 

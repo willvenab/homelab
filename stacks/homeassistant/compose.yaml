@@ -2,12 +2,14 @@
 # Host networking so it can discover devices on the LAN (mDNS, SSDP, HomeKit,
 # Chromecast); a bridge network would hide them. That also means it can't join
 # the proxy network, so Caddy reaches it at host.docker.internal:8123, and the
-# port is open on the LAN too. It has its own login (and the companion app
-# can't get past Authelia), so Caddy doesn't `import authelia` for it.
+# port is open on the LAN too. It logs in through Authelia itself (OIDC, via
+# the hass-oidc-auth integration), so Caddy doesn't `import authelia` for it:
+# forward auth would lock out the companion app.
 #
 # First deploy: Home Assistant rejects proxied requests until it trusts Caddy.
 # Add this to /srv/appdata/homeassistant/config/configuration.yaml, then
-# restart the stack and open ha.<DOMAIN> to create the owner account:
+# restart the stack and open ha.<DOMAIN> to create the owner account. Then set
+# up single sign-on (README → "Single sign-on" → Home Assistant).
 #
 #   http:
 #     use_x_forwarded_for: true
