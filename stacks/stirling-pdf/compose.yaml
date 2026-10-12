@@ -1,0 +1,34 @@
+# Stirling-PDF: merge, split, OCR, convert and edit PDFs in the browser.
+# Files are processed in memory and not kept, so only settings persist.
+# Its own login is off: Caddy puts it behind Authelia (import authelia).
+
+services:
+  stirling-pdf:
+    image: stirlingtools/stirling-pdf:3.1.0
+    restart: unless-stopped
+    # Java + LibreOffice + OCR; big conversions need the headroom.
+    mem_limit: 2g
+    networks:
+      - proxy
+    labels:
+      homepage.group: Apps
+      homepage.name: Stirling-PDF
+      homepage.icon: stirling-pdf.png
+      homepage.href: https://pdf.${DOMAIN}
+      homepage.description: Merge, split, OCR and convert PDFs
+    volumes:
+      # settings.yml (written on first start) and JVM heap dumps.
+      - /srv/appdata/stirling-pdf/configs:/configs
+    environment:
+      SECURITY_ENABLELOGIN: "false"
+      SYSTEM_DEFAULTLOCALE: en-US
+      # No telemetry, and no update banner: Renovate handles updates.
+      SYSTEM_ENABLEANALYTICS: "false"
+      SYSTEM_ENABLEPOSTHOG: "false"
+      SYSTEM_ENABLESCARF: "false"
+      SYSTEM_SHOWUPDATE: "false"
+      SYSTEM_ENABLEDESKTOPINSTALLSLIDE: "false"
+
+networks:
+  proxy:
+    external: true

@@ -59,6 +59,12 @@
 		reverse_proxy osrs-tools:3000
 	}
 
+	@pdf host pdf.{$DOMAIN}
+	handle @pdf {
+		import authelia
+		reverse_proxy stirling-pdf:8080
+	}
+
 	# Unknown subdomain: plain 404.
 	handle {
 		respond "Unknown service" 404
