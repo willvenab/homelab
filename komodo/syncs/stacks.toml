@@ -148,3 +148,19 @@ run_directory = "stacks/stirling-pdf"
 environment = """
 DOMAIN = [[DOMAIN]]
 """
+
+[[stack]]
+name = "hermes"
+description = "Hermes Agent: AI agent with memory, skills and chat gateways"
+tags = ["homelab", "apps"]
+deploy = true
+after = ["caddy", "authelia"]
+[stack.config]
+server = "elitedesk"
+repo = "willvenab/homelab"
+git_account = "willvenab"
+branch = "main"
+run_directory = "stacks/hermes"
+environment = """
+DOMAIN = [[DOMAIN]]
+"""

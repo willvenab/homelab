@@ -1,0 +1,48 @@
+# Hermes Agent (github.com/NousResearch/hermes-agent): a self-hosted AI agent
+# with memory, skills and cron jobs, reached through chat apps (Telegram,
+# Discord, ...) and a web dashboard at hermes.<DOMAIN>.
+#
+# All state (config.yaml, .env with LLM and chat API keys, sessions, memories,
+# skills) lives in /srv/appdata/hermes. API keys are set with `hermes setup` or
+# in the dashboard, not here: see README.md → "Hermes Agent".
+#
+# The dashboard logs in through Authelia (OIDC, public client "hermes"). It
+# refuses to start on a non-loopback bind without a login provider, so there is
+# no way to expose it unauthenticated by mistake.
+#
+# No Docker socket: the agent runs its tools inside this container only.
+
+services:
+  hermes:
+    image: nousresearch/hermes-agent:v0.21.6
+    restart: unless-stopped
+    # s6 keeps the container up and supervises the gateway and dashboard;
+    # `gateway run` itself just waits.
+    command: ["gateway", "run"]
+    # Upstream recommends 2-4 GB; the headless browser tool is the hungry part.
+    mem_limit: 3g
+    shm_size: 1g
+    networks:
+      - proxy
+    labels:
+      homepage.group: Apps
+      homepage.name: Hermes Agent
+      homepage.icon: mdi-robot-outline
+      homepage.href: https://hermes.${DOMAIN}
+      homepage.description: AI agent with memory, skills and chat gateways
+    volumes:
+      - /srv/appdata/hermes:/opt/data
+    environment:
+      # Web dashboard on :9119, behind Caddy.
+      HERMES_DASHBOARD: "1"
+      HERMES_DASHBOARD_PUBLIC_URL: https://hermes.${DOMAIN}
+      # Authelia is reached through Caddy's auth.<DOMAIN> alias on the proxy
+      # network (stacks/caddy/compose.yaml). offline_access gets a refresh
+      # token, so the dashboard doesn't log you out every hour.
+      HERMES_DASHBOARD_OIDC_ISSUER: https://auth.${DOMAIN}
+      HERMES_DASHBOARD_OIDC_CLIENT_ID: hermes
+      HERMES_DASHBOARD_OIDC_SCOPES: openid profile email offline_access
+
+networks:
+  proxy:
+    external: true

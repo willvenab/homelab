@@ -90,6 +90,8 @@ The `authelia` stack serves one login page at `auth.<DOMAIN>`. Once you've logge
 | AdGuard  | Caddy asks Authelia first (`import authelia` in the Caddyfile) |
 | Homepage | Caddy asks Authelia first |
 | OSRS Tools | Caddy asks Authelia first |
+| Stirling-PDF | Caddy asks Authelia first |
+| Hermes Agent | OIDC, no setup needed (a public client, so no secret) |
 
 Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` and are created by `stacks/authelia/setup.sh` (see [After bootstrap](#after-bootstrap-one-time-in-the-komodo-ui), step 5). Re-running it is safe; it prints the Komodo and Beszel client secrets again. If this box was set up before Authelia existed, `git -C /opt/homelab pull` first, then run it and redeploy `authelia`.
 
@@ -149,6 +151,26 @@ The `tailscale` stack makes the server a [subnet router](https://tailscale.com/k
 5. Admin console → **DNS → Nameservers → Add nameserver → Custom**: enter the server's LAN IP, tick **Restrict to domain** (split DNS) and enter `<DOMAIN>`. Now `*.<DOMAIN>` resolves through AdGuard on your phone whenever Tailscale is on. (Skip "Restrict to domain" and enable **Override DNS servers** instead if you also want AdGuard's ad blocking while away.)
 
 Tailscale has no local web UI, so its tile on `home.<DOMAIN>` links to the admin console instead.
+
+## Hermes Agent
+
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) is an AI agent that remembers things, learns skills and runs scheduled jobs. You talk to it through a chat app (Telegram, Discord, ...) or the dashboard at `hermes.<DOMAIN>`, which logs in through Authelia. Everything it knows, including its API keys, is in `/srv/appdata/hermes`.
+
+1. Deploy the `hermes` stack (after `authelia`, which has its OIDC client). It starts without any API keys; it just can't answer until it has some.
+2. On the server, run the setup wizard and pick a model provider (e.g. OpenRouter, Anthropic or Nous Portal). Set up a chat app here too, or later from the dashboard's **Channels** page:
+   ```sh
+   docker exec -it hermes-hermes-1 hermes setup
+   ```
+   The keys go into `/srv/appdata/hermes/.env`, not Komodo. Then restart the gateway: `docker exec hermes-hermes-1 hermes gateway restart`.
+3. Open `hermes.<DOMAIN>` and click **Sign in with Self-Hosted OIDC**.
+4. Optional: let the dashboard trust Caddy's `X-Forwarded-Proto`, so its cookies are marked `Secure`. Get the proxy network's subnet with `docker network inspect proxy -f '{{(index .IPAM.Config 0).Subnet}}'` and add it to `/srv/appdata/hermes/config.yaml`, then restart the stack:
+   ```yaml
+   dashboard:
+     trusted_proxies:
+       - "172.18.0.0/16"   # your subnet
+   ```
+
+The agent can run shell commands, but only inside its own container: the stack doesn't mount the Docker socket. Logs: `docker logs hermes-hermes-1`, or `docker exec hermes-hermes-1 hermes logs --follow`.
 
 ## Adding a service
 
