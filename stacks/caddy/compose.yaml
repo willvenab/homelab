@@ -13,7 +13,11 @@ services:
       - 443:443
       - 443:443/udp
     networks:
-      - proxy
+      proxy:
+        # Lets containers (Komodo, Beszel) reach Authelia's OIDC endpoints at
+        # auth.<DOMAIN> straight through Caddy, without a DNS round trip.
+        aliases:
+          - auth.${DOMAIN}
     environment:
       DOMAIN: ${DOMAIN}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}

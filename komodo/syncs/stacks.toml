@@ -29,6 +29,24 @@ CLOUDFLARE_API_TOKEN = [[CLOUDFLARE_API_TOKEN]]
 """
 
 [[stack]]
+name = "authelia"
+description = "Single sign-on for every web UI"
+tags = ["homelab", "core"]
+deploy = true
+after = ["caddy"]
+[stack.config]
+server = "elitedesk"
+repo = "willvenab/homelab"
+git_account = "willvenab"
+branch = "main"
+run_directory = "stacks/authelia"
+# Restart Authelia when its config changes, so it reloads it.
+config_files = [{ path = "config/configuration.yml", requires = "Restart" }]
+environment = """
+DOMAIN = [[DOMAIN]]
+"""
+
+[[stack]]
 name = "beszel"
 description = "Lightweight host and container monitoring"
 tags = ["homelab", "monitoring"]
