@@ -90,6 +90,7 @@ The `authelia` stack serves one login page at `auth.<DOMAIN>`. Once you've logge
 | AdGuard  | Caddy asks Authelia first (`import authelia` in the Caddyfile) |
 | Homepage | Caddy asks Authelia first |
 | OSRS Tools | Caddy asks Authelia first |
+| OpenClaw | Caddy asks Authelia first; the gateway trusts the user Authelia passes on (see [OpenClaw](#openclaw)) |
 
 Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` and are created by `stacks/authelia/setup.sh` (see [After bootstrap](#after-bootstrap-one-time-in-the-komodo-ui), step 5). Re-running it is safe; it prints the Komodo and Beszel client secrets again. If this box was set up before Authelia existed, `git -C /opt/homelab pull` first, then run it and redeploy `authelia`.
 
@@ -149,6 +150,17 @@ The `tailscale` stack makes the server a [subnet router](https://tailscale.com/k
 5. Admin console → **DNS → Nameservers → Add nameserver → Custom**: enter the server's LAN IP, tick **Restrict to domain** (split DNS) and enter `<DOMAIN>`. Now `*.<DOMAIN>` resolves through AdGuard on your phone whenever Tailscale is on. (Skip "Restrict to domain" and enable **Override DNS servers** instead if you also want AdGuard's ad blocking while away.)
 
 Tailscale has no local web UI, so its tile on `home.<DOMAIN>` links to the admin console instead.
+
+## OpenClaw
+
+The `openclaw` stack runs the [OpenClaw](https://docs.openclaw.ai) gateway and its Control UI at `openclaw.<DOMAIN>`. Model provider keys aren't Komodo variables: OpenClaw's onboarding stores them, encrypted, in `/srv/appdata/openclaw`.
+
+1. On the server, as root, run `/opt/homelab/stacks/openclaw/setup.sh`. It asks for your `DOMAIN` and Authelia username, runs OpenClaw's onboarding (pick a provider and paste its API key; skip channels if you don't need them yet), then sets the gateway to log in through Authelia.
+2. Redeploy the `openclaw` stack and open `openclaw.<DOMAIN>`. Until step 1 is done, the container restarts in a loop; that's expected.
+
+Only the Authelia user you named gets in (`allowUsers`), with admin rights, and a new browser is paired automatically once Authelia lets it through. To allow another user, re-run `setup.sh` with that name, or edit `gateway.auth` in `/srv/appdata/openclaw/state/openclaw.json` (the gateway reloads it). To change providers or add channels later: `docker exec -it openclaw-openclaw-1 node dist/index.js configure`.
+
+If the UI shows `1008 unauthorized` or `proxy_attribution_required`, the gateway didn't trust Caddy: check that `gateway.trustedProxies` matches `docker network inspect proxy` (re-run `setup.sh` if the network was recreated).
 
 ## Adding a service
 

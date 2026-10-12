@@ -1,0 +1,53 @@
+# OpenClaw: self-hosted AI assistant gateway and its Control UI.
+# State (config, sessions, workspace) lives in /srv/appdata/openclaw, owned by
+# the image's `node` user (uid 1000). Run setup.sh once before the first deploy.
+# Login: Caddy asks Authelia first, and the gateway trusts the Remote-User
+# header it forwards (gateway.auth.mode = trusted-proxy, set by setup.sh).
+
+services:
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:2026.10.2
+    restart: unless-stopped
+    mem_limit: 2g
+    init: true
+    networks:
+      - proxy
+    labels:
+      homepage.group: Apps
+      homepage.name: OpenClaw
+      homepage.icon: openclaw.png
+      homepage.href: https://openclaw.${DOMAIN}
+      homepage.description: AI assistant gateway
+    volumes:
+      - /srv/appdata/openclaw/state:/home/node/.openclaw
+      # Key that encrypts saved provider credentials (auth profiles).
+      - /srv/appdata/openclaw/auth-secrets:/home/node/.config/openclaw
+    environment:
+      HOME: /home/node
+      OPENCLAW_HOME: /home/node
+      OPENCLAW_STATE_DIR: /home/node/.openclaw
+      OPENCLAW_CONFIG_PATH: /home/node/.openclaw/openclaw.json
+      OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
+      OPENCLAW_GATEWAY_PORT: "18789"
+      # No mDNS on a bridge network.
+      OPENCLAW_DISABLE_BONJOUR: "1"
+      TZ: Etc/UTC
+    # Same hardening as upstream's docker-compose.yml.
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    # Listen on the container's interface so Caddy can reach it. No ports are
+    # published, so the proxy network is the only way in.
+    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
+    healthcheck:
+      test: ["CMD", "node", "dist/docker-healthcheck.js"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+networks:
+  proxy:
+    external: true
