@@ -94,15 +94,24 @@ Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` 
 
 **Komodo.** Its settings aren't in the sync, so this is done on the server:
 
-1. In `/etc/komodo/core/compose.env`, set `KOMODO_HOST=https://komodo.<DOMAIN>` and add the "Single sign-on" block from `komodo/compose.env.example`, uncommented, with your domain and the Komodo client secret.
-2. Run `/opt/homelab/bootstrap/install.sh` to restart Komodo.
-3. Open `komodo.<DOMAIN>`. It redirects to Authelia and back, then says your user is disabled: that's expected, since it's a new Komodo user.
-4. Open `komodo.<DOMAIN>/login?disableAutoLogin=true`, log in as `admin`, and under **Settings → Users** enable the new user and make it an admin. From then on, use Authelia. Keep the local `admin` password somewhere safe as a way in if Authelia is down.
+1. In `/etc/komodo/core/compose.env`, set `KOMODO_HOST=https://komodo.<DOMAIN>` (exactly: Komodo builds the OIDC redirect URL from it) and add the "Single sign-on" block from `komodo/compose.env.example`, uncommented, with your domain and the Komodo client secret. A `compose.env` made before Authelia existed doesn't have that block, so copy it from the example.
+2. Komodo needs to create a user for you on your first Authelia login, but `KOMODO_DISABLE_USER_REGISTRATION=true` blocks that ("User registration is disabled"). On 2.3.3, `KOMODO_DISABLE_OIDC_USER_REGISTRATION=false` alone didn't get around it, so set `KOMODO_DISABLE_USER_REGISTRATION=false` for now.
+3. Restart Komodo with the new settings, and check that they took effect:
+   ```sh
+   docker compose -p komodo -f /etc/komodo/core/compose.yaml --env-file /etc/komodo/core/compose.env up -d
+   docker exec komodo-core-1 env | grep -E 'KOMODO_HOST|OIDC|REGISTRATION'
+   ```
+   This is the last line of `bootstrap/install.sh`. Running the whole script works too, but it also restarts Docker and every container.
+4. Open `komodo.<DOMAIN>` in a private window. It redirects to Authelia and back, then says your user is disabled: that's expected, since it's a new Komodo user.
+5. Open `komodo.<DOMAIN>/login?disableAutoLogin=true`, log in as `admin`, and under **Settings → Users** enable the new user and make it an admin.
+6. Set `KOMODO_DISABLE_USER_REGISTRATION=true` again and re-run the `docker compose` command from step 3. Existing users can still log in. From then on, use Authelia. Keep the local `admin` password somewhere safe as a way in if Authelia is down.
 
 **Beszel.** Use the same email in Authelia as your Beszel account, so Beszel links the two instead of creating a second user.
 
-1. Open `beszel.<DOMAIN>/_/#/settings`, untick **Hide collection create and edit controls** and save.
-2. **Collections → users → ⚙ (edit) → Options → OAuth2**: enable it, **Add provider → OpenID Connect**, and fill in:
+This is done in the PocketBase admin at `beszel.<DOMAIN>/_/` (type the `/_/` in yourself; Beszel's own **Settings** page doesn't have these options). Log in with your Beszel admin email and password.
+
+1. **Settings** (gear icon in the left sidebar) → **Application**: at the bottom, turn off **Hide collection create and edit controls** and save.
+2. **Collections** (database icon) → **users** → ⚙ next to the collection name → **Options → OAuth2**: enable it, **Add provider → OpenID Connect**, and fill in the fields below. Replace `<DOMAIN>` with your real domain in all three URLs, with no trailing slash:
 
    | Field         | Value |
    |---------------|-------|
@@ -113,7 +122,10 @@ Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` 
    | Token URL     | `https://auth.<DOMAIN>/api/oidc/token` |
    | User info URL | `https://auth.<DOMAIN>/api/oidc/userinfo` |
 
-3. Save, log out of Beszel and log back in with **Authelia**. Once that works, you can uncomment `DISABLE_PASSWORD_AUTH` in `stacks/beszel/compose.yaml` to hide the password form.
+3. Save, log out of Beszel and log back in with **Authelia**.
+4. Once that works, turn **Hide collection create and edit controls** back on, so the collections can't be edited by accident. You can also uncomment `DISABLE_PASSWORD_AUTH` in `stacks/beszel/compose.yaml` to hide the password form.
+
+If the login fails with `Failed to fetch OAuth2 user`, the token step worked (so the client ID, secret and redirect are fine) but fetching your profile didn't. Check the **User info URL** first. The real error is in `/_/` → **Logs** (filter with `level > 0`).
 
 **AdGuard.** Authelia now guards it, so drop AdGuard's own login: in `/srv/appdata/adguard/conf/AdGuardHome.yaml`, replace the `users:` list with `users: []` and redeploy the `adguard` stack.
 
