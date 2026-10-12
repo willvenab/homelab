@@ -1,0 +1,36 @@
+# Home Assistant: home automation hub.
+# Host networking so it can discover devices on the LAN (mDNS, SSDP, HomeKit,
+# Chromecast); a bridge network would hide them. That also means it can't join
+# the proxy network, so Caddy reaches it at host.docker.internal:8123, and the
+# port is open on the LAN too. It has its own login (and the companion app
+# can't get past Authelia), so Caddy doesn't `import authelia` for it.
+#
+# First deploy: Home Assistant rejects proxied requests until it trusts Caddy.
+# Add this to /srv/appdata/homeassistant/config/configuration.yaml, then
+# restart the stack and open ha.<DOMAIN> to create the owner account:
+#
+#   http:
+#     use_x_forwarded_for: true
+#     trusted_proxies:
+#       - 172.16.0.0/12
+#
+# USB radios (Zigbee, Z-Wave): add the device under `devices:`, e.g.
+#   - /dev/serial/by-id/usb-...:/dev/ttyUSB0
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.10.1
+    restart: unless-stopped
+    mem_limit: 1g
+    network_mode: host
+    labels:
+      homepage.group: Apps
+      homepage.name: Home Assistant
+      homepage.icon: home-assistant.png
+      homepage.href: https://ha.${DOMAIN}
+      homepage.description: Home automation
+    volumes:
+      - /srv/appdata/homeassistant/config:/config
+      - /etc/localtime:/etc/localtime:ro
+      # Bluetooth integrations talk to the host's BlueZ over D-Bus.
+      - /run/dbus:/run/dbus:ro

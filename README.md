@@ -90,6 +90,8 @@ The `authelia` stack serves one login page at `auth.<DOMAIN>`. Once you've logge
 | AdGuard  | Caddy asks Authelia first (`import authelia` in the Caddyfile) |
 | Homepage | Caddy asks Authelia first |
 | OSRS Tools | Caddy asks Authelia first |
+| Stirling-PDF | Caddy asks Authelia first |
+| Home Assistant | Its own login (the companion app can't get past Authelia) |
 
 Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` and are created by `stacks/authelia/setup.sh` (see [After bootstrap](#after-bootstrap-one-time-in-the-komodo-ui), step 5). Re-running it is safe; it prints the Komodo and Beszel client secrets again. If this box was set up before Authelia existed, `git -C /opt/homelab pull` first, then run it and redeploy `authelia`.
 
