@@ -132,3 +132,19 @@ environment = """
 DOMAIN = [[DOMAIN]]
 OSRS_PRICES_USER_AGENT = [[OSRS_PRICES_USER_AGENT]]
 """
+
+[[stack]]
+name = "stirling-pdf"
+description = "PDF toolbox: merge, split, OCR, convert"
+tags = ["homelab", "apps"]
+deploy = true
+after = ["caddy"]
+[stack.config]
+server = "elitedesk"
+repo = "willvenab/homelab"
+git_account = "willvenab"
+branch = "main"
+run_directory = "stacks/stirling-pdf"
+environment = """
+DOMAIN = [[DOMAIN]]
+"""
