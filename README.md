@@ -169,7 +169,7 @@ Tailscale has no local web UI, so its tile on `home.<DOMAIN>` links to the admin
 
 Neither container has the Docker socket, so the agent's shell commands stay inside its own container. Logs: `docker logs hermes-hermes-1` (or `docker exec hermes-hermes-1 hermes logs --follow`) and `docker logs hermes-hermes-webui-1`.
 
-**Upgrades.** The WebUI needs the agent's code, so on each deploy the `agent-src` container copies it out of the agent image, and the WebUI reinstalls it. The stack is set to `destroy_before_deploy` for that, so any deploy restarts the gateway too. Upstream treats a WebUI release and an agent release as a pair: if something breaks after one side is bumped, bump the other too. The WebUI's tags on ghcr.io mix stable and experimental builds, so Renovate takes WebUI versions from its stable GitHub releases instead (see `renovate.json`).
+**Upgrades.** The WebUI needs the agent's code, so the `agent-src` container copies it out of the agent image whenever the agent version changes, then idles (so it shows as running, not exited). The WebUI reinstalls it on every deploy. The stack is set to `destroy_before_deploy` for that, so any deploy restarts the gateway too. Upstream treats a WebUI release and an agent release as a pair: if something breaks after one side is bumped, bump the other too. The WebUI's tags on ghcr.io mix stable and experimental builds, so Renovate takes WebUI versions from its stable GitHub releases instead (see `renovate.json`).
 
 If the WebUI can't read `/srv/appdata/hermes` (`Permission denied` in its log), check the owner with `stat -c '%u:%g' /srv/appdata/hermes` and set `WANTED_UID`/`WANTED_GID` in the compose file to match.
 
