@@ -94,6 +94,14 @@ services:
       HERMES_WEBUI_STATE_DIR: /opt/data/webui
       HERMES_WEBUI_HOST: 0.0.0.0
       HERMES_WEBUI_PORT: "8787"
+      # Build the WebUI's venv on Python 3.14, not the image's 3.12: the
+      # agent gates all its core dependencies on python_version >= '3.14', so
+      # on 3.12 none get installed and chat, skills and the gateway check all
+      # fail on missing modules (nesquena/hermes-webui#8113). Keep the
+      # downloaded Python in the persistent uv cache so deploys don't refetch
+      # it. Drop both once a WebUI release fixes that issue.
+      UV_PYTHON: "3.14"
+      UV_PYTHON_INSTALL_DIR: /uv_cache/python
       # Run as the agent image's hermes user, which owns /srv/appdata/hermes.
       # Auto-detection would pick the WebUI image's own user on first start.
       WANTED_UID: "10000"
