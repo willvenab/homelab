@@ -41,7 +41,9 @@ services:
     init: true
     entrypoint: ["sh", "-c"]
     # Skip the agent's own venv; the WebUI builds its own. The version stamp
-    # is written last, so an interrupted copy is redone.
+    # is written last, so an interrupted copy is redone. The copy is made
+    # readable to all on every start because some files in the image are
+    # root-only (e.g. tools/.install.lock) and the WebUI runs as UID 10000.
     command:
       - >-
         rm -f /tmp/ready &&
@@ -51,6 +53,7 @@ services:
         tar -C /src -xf - &&
         cp /etc/hermes/image-provenance.json /src/.image-provenance.json;
         fi &&
+        chmod -R a+rX /src &&
         touch /tmp/ready &&
         exec sleep infinity
     healthcheck:
