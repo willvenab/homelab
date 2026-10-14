@@ -91,7 +91,7 @@ The `authelia` stack serves one login page at `auth.<DOMAIN>`. Once you've logge
 | Homepage | Caddy asks Authelia first |
 | OSRS Tools | Caddy asks Authelia first |
 | Stirling-PDF | Caddy asks Authelia first |
-| Hermes   | OIDC, no setup needed (a public client, so no secret); only the `admins` group gets in |
+| Hermes   | Caddy asks Authelia first; only the `admins` group gets in |
 
 Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` and are created by `stacks/authelia/setup.sh` (see [After bootstrap](#after-bootstrap-one-time-in-the-komodo-ui), step 5). Re-running it is safe; it prints the Komodo and Beszel client secrets again. If this box was set up before Authelia existed, `git -C /opt/homelab pull` first, then run it and redeploy `authelia`.
 
@@ -159,13 +159,13 @@ Tailscale has no local web UI, so its tile on `home.<DOMAIN>` links to the admin
 - `hermes`, the gateway: connects chat apps (Telegram, Discord, ...) and runs scheduled jobs. The agent's built-in dashboard is turned off.
 - `hermes-webui`, [Hermes WebUI](https://github.com/nesquena/hermes-webui) at `hermes.<DOMAIN>`: chat in the browser. It runs its own copy of the agent, so tools you trigger from it run in this container, not the gateway's. Its file browser shows `/srv/appdata/hermes-webui/workspace`.
 
-1. Deploy the `hermes` stack (after `authelia`, which has its OIDC client). It starts without any API keys; it just can't answer until it has some. The WebUI's first start takes a few minutes while it installs the agent: `docker logs -f hermes-hermes-webui-1`.
+1. Deploy the `hermes` stack. It starts without any API keys; it just can't answer until it has some. The WebUI's first start takes a few minutes while it installs the agent: `docker logs -f hermes-hermes-webui-1`.
 2. On the server, run the setup wizard and pick a model provider (e.g. OpenRouter, Anthropic or Nous Portal). Set up a chat app here too:
    ```sh
    docker exec -it hermes-hermes-1 hermes setup
    ```
    The keys go into `/srv/appdata/hermes/.env`, not Komodo. Then restart the gateway: `docker exec hermes-hermes-1 hermes gateway restart`. Run the wizard again later to add another chat app.
-3. Open `hermes.<DOMAIN>` and sign in with Authelia. Only users in the `admins` group (in `users_database.yml`) are let in; change `HERMES_WEBUI_OIDC_ALLOW_VALUES` in `stacks/hermes/compose.yaml` to allow others.
+3. Open `hermes.<DOMAIN>` and sign in with Authelia. Only users in the `admins` group (in `users_database.yml`) are let in; the `hermes.<DOMAIN>` rules in `stacks/authelia/config/configuration.yml` decide that. The WebUI logs you in from the `Remote-User` header Caddy passes on. Its own OIDC login can't be used here, because it refuses an identity provider on a private IP.
 
 Neither container has the Docker socket, so the agent's shell commands stay inside its own container. Logs: `docker logs hermes-hermes-1` (or `docker exec hermes-hermes-1 hermes logs --follow`) and `docker logs hermes-hermes-webui-1`.
 

@@ -65,9 +65,10 @@
 		reverse_proxy stirling-pdf:8080
 	}
 
-	# Hermes WebUI. Logs in through Authelia itself (OIDC).
+	# Hermes WebUI. It logs you in from the Remote-User header.
 	@hermes host hermes.{$DOMAIN}
 	handle @hermes {
+		import authelia
 		reverse_proxy hermes-webui:8787
 	}
 
