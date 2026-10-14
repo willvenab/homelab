@@ -16,6 +16,23 @@
       "matchUpdateTypes": ["patch", "digest"],
       "matchFileNames": ["stacks/**"],
       "automerge": true
+    },
+    {
+      "description": "Hermes WebUI is tracked by the custom manager below instead",
+      "matchManagers": ["docker-compose"],
+      "matchPackageNames": ["ghcr.io/nesquena/hermes-webui"],
+      "enabled": false
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "Hermes WebUI's stable and experimental builds share one tag series on ghcr.io, so take versions from its stable GitHub releases (vX.Y.Z, not exp-vX.Y.Z)",
+      "customType": "regex",
+      "fileMatch": ["(^|/)compose\\.ya?ml$"],
+      "matchStrings": ["image: ghcr\\.io/nesquena/hermes-webui:(?<currentValue>\\S+)"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "nesquena/hermes-webui",
+      "extractVersionTemplate": "^v(?<version>\\d+\\.\\d+\\.\\d+)$"
     }
   ]
 }

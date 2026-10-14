@@ -71,6 +71,12 @@
 		reverse_proxy hermes:9119
 	}
 
+	# Hermes WebUI. Logs in through Authelia itself (OIDC).
+	@chat host chat.{$DOMAIN}
+	handle @chat {
+		reverse_proxy hermes-webui:8787
+	}
+
 	# Unknown subdomain: plain 404.
 	handle {
 		respond "Unknown service" 404

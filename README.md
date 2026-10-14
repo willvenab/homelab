@@ -92,6 +92,7 @@ The `authelia` stack serves one login page at `auth.<DOMAIN>`. Once you've logge
 | OSRS Tools | Caddy asks Authelia first |
 | Stirling-PDF | Caddy asks Authelia first |
 | Hermes Agent | OIDC, no setup needed (a public client, so no secret) |
+| Hermes WebUI | OIDC, no setup needed (a public client); only the `admins` group gets in |
 
 Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` and are created by `stacks/authelia/setup.sh` (see [After bootstrap](#after-bootstrap-one-time-in-the-komodo-ui), step 5). Re-running it is safe; it prints the Komodo and Beszel client secrets again. If this box was set up before Authelia existed, `git -C /opt/homelab pull` first, then run it and redeploy `authelia`.
 
@@ -171,6 +172,17 @@ Tailscale has no local web UI, so its tile on `home.<DOMAIN>` links to the admin
    ```
 
 The agent can run shell commands, but only inside its own container: the stack doesn't mount the Docker socket. Logs: `docker logs hermes-hermes-1`, or `docker exec hermes-hermes-1 hermes logs --follow`.
+
+### Hermes WebUI
+
+[Hermes WebUI](https://github.com/nesquena/hermes-webui) is a chat app for the same agent at `chat.<DOMAIN>`, in the `hermes` stack. It runs its own copy of the agent against `/srv/appdata/hermes`, so it shares the gateway's model, API keys, memories, skills and sessions. Do the Hermes Agent steps above first; there's nothing else to set up.
+
+- Open `chat.<DOMAIN>` and sign in with Authelia. Only users in the `admins` group (in `users_database.yml`) are let in; change `HERMES_WEBUI_OIDC_ALLOW_VALUES` in `stacks/hermes/compose.yaml` to allow others.
+- Tools you trigger from the WebUI run in the `hermes-hermes-webui-1` container, not the gateway's. Its file browser shows `/srv/appdata/hermes-webui/workspace`.
+- On each deploy the `agent-src` container copies the agent's code out of the agent image, and the WebUI installs it, so the first start after a deploy takes a few minutes. Watch it with `docker logs -f hermes-hermes-webui-1`. The stack is set to `destroy_before_deploy`, so a deploy restarts the gateway too.
+- Upstream treats a WebUI release and an agent release as a pair. If something breaks after one side is bumped, bump the other too.
+- The WebUI's tags on ghcr.io mix stable and experimental builds, so Renovate takes WebUI versions from its stable GitHub releases instead (see `renovate.json`).
+- If the WebUI can't read `/srv/appdata/hermes` (`Permission denied` in its log), check the owner with `stat -c '%u:%g' /srv/appdata/hermes` and set `WANTED_UID`/`WANTED_GID` in the compose file to match.
 
 ## Adding a service
 

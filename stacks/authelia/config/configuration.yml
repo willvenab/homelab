@@ -57,6 +57,11 @@ identity_providers:
   oidc:
     jwks:
       - key: {{ secret "/secrets/oidc_jwks.pem" | mindent 10 "|" | msquote }}
+    # Authelia only puts these in the userinfo response by default, but Hermes
+    # WebUI reads them from the ID token.
+    claims_policies:
+      id_token_profile:
+        id_token: ['preferred_username', 'email', 'groups']
     clients:
       # https://www.authelia.com/integration/openid-connect/clients/komodo/
       - client_id: 'komodo'
@@ -110,6 +115,25 @@ identity_providers:
         scopes: ['openid', 'profile', 'email', 'offline_access']
         response_types: ['code']
         grant_types: ['authorization_code', 'refresh_token']
+        access_token_signed_response_alg: 'none'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'none'
+
+      # Hermes WebUI. A public client (PKCE, no secret) like the dashboard
+      # above. It checks the groups claim, so it needs id_token_profile.
+      - client_id: 'hermes-webui'
+        client_name: 'Hermes WebUI'
+        public: true
+        authorization_policy: 'one_factor'
+        consent_mode: 'implicit'
+        claims_policy: 'id_token_profile'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://chat.{{ env "DOMAIN" }}/api/auth/oidc/callback'
+        scopes: ['openid', 'profile', 'email', 'groups']
+        response_types: ['code']
+        grant_types: ['authorization_code']
         access_token_signed_response_alg: 'none'
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'none'

@@ -10,7 +10,13 @@
 # refuses to start on a non-loopback bind without a login provider, so there is
 # no way to expose it unauthenticated by mistake.
 #
-# No Docker socket: the agent runs its tools inside this container only.
+# Hermes WebUI (github.com/nesquena/hermes-webui) is a chat UI at
+# chat.<DOMAIN>. It runs the agent in its own process against the same
+# /srv/appdata/hermes, so chats, memories and skills are shared with the
+# gateway. It logs in through Authelia too (OIDC, public client
+# "hermes-webui").
+#
+# No Docker socket: the agent runs its tools inside its own container only.
 
 services:
   hermes:
@@ -42,6 +48,72 @@ services:
       HERMES_DASHBOARD_OIDC_ISSUER: https://auth.${DOMAIN}
       HERMES_DASHBOARD_OIDC_CLIENT_ID: hermes
       HERMES_DASHBOARD_OIDC_SCOPES: openid profile email offline_access
+
+  # Copies the agent's source out of its image for the WebUI, which installs
+  # it on start. Runs on every deploy so the copy always matches the image:
+  # keep this tag the same as the hermes service's (Renovate bumps both).
+  agent-src:
+    image: nousresearch/hermes-agent:v0.21.6
+    restart: "no"
+    mem_limit: 256m
+    entrypoint: ["sh", "-c"]
+    # Skip the agent's own venv; the WebUI builds its own.
+    command:
+      - >-
+        find /src -mindepth 1 -delete &&
+        tar -C /opt/hermes --exclude=./.venv --exclude=./node_modules -cf - . |
+        tar -C /src -xf -
+    volumes:
+      - agent-src:/src
+
+  hermes-webui:
+    image: ghcr.io/nesquena/hermes-webui:0.52.458
+    restart: unless-stopped
+    depends_on:
+      agent-src:
+        condition: service_completed_successfully
+    # The agent and its tools run in here when you chat from the WebUI.
+    mem_limit: 2g
+    networks:
+      - proxy
+    labels:
+      homepage.group: Apps
+      homepage.name: Hermes WebUI
+      homepage.icon: mdi-chat-outline
+      homepage.href: https://chat.${DOMAIN}
+      homepage.description: Chat with Hermes Agent
+    volumes:
+      # Same Hermes home as the agent, at the same path.
+      - /srv/appdata/hermes:/opt/data
+      - agent-src:/opt/hermes:ro
+      # The file browser's workspace.
+      - /srv/appdata/hermes-webui/workspace:/workspace
+      # Makes the dependency install on each deploy quicker.
+      - /srv/appdata/hermes-webui/uv-cache:/uv_cache
+    environment:
+      HERMES_HOME: /opt/data
+      HERMES_WEBUI_STATE_DIR: /opt/data/webui
+      HERMES_WEBUI_HOST: 0.0.0.0
+      HERMES_WEBUI_PORT: "8787"
+      # Run as the agent image's hermes user, which owns /srv/appdata/hermes.
+      # Auto-detection would pick the WebUI image's own user on first start.
+      WANTED_UID: "10000"
+      WANTED_GID: "10000"
+      # Behind Caddy on https.
+      HERMES_WEBUI_SECURE: "1"
+      HERMES_WEBUI_ALLOWED_ORIGINS: https://chat.${DOMAIN}
+      # Login through Authelia. The redirect URI is fixed because the WebUI
+      # would otherwise build it from the plain-http request Caddy sends.
+      # Only members of the Authelia group "admins" get in.
+      HERMES_WEBUI_OIDC_ISSUER: https://auth.${DOMAIN}
+      HERMES_WEBUI_OIDC_CLIENT_ID: hermes-webui
+      HERMES_WEBUI_OIDC_REDIRECT_URI: https://chat.${DOMAIN}/api/auth/oidc/callback
+      HERMES_WEBUI_OIDC_SCOPES: openid profile email groups
+      HERMES_WEBUI_OIDC_ALLOW_CLAIM: groups
+      HERMES_WEBUI_OIDC_ALLOW_VALUES: admins
+
+volumes:
+  agent-src:
 
 networks:
   proxy:
