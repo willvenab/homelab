@@ -29,6 +29,13 @@ authentication_backend:
 access_control:
   default_policy: 'deny'
   rules:
+    # Hermes runs commands and holds your API keys, so only admins get in. Rules are
+    # checked in order, so these come before the wildcard.
+    - domain: 'hermes.{{ env "DOMAIN" }}'
+      subject: 'group:admins'
+      policy: 'one_factor'
+    - domain: 'hermes.{{ env "DOMAIN" }}'
+      policy: 'deny'
     - domain: '*.{{ env "DOMAIN" }}'
       policy: 'one_factor'
 
@@ -57,11 +64,6 @@ identity_providers:
   oidc:
     jwks:
       - key: {{ secret "/secrets/oidc_jwks.pem" | mindent 10 "|" | msquote }}
-    # Authelia only puts these in the userinfo response by default, but Hermes
-    # WebUI reads them from the ID token.
-    claims_policies:
-      id_token_profile:
-        id_token: ['preferred_username', 'email', 'groups']
     clients:
       # https://www.authelia.com/integration/openid-connect/clients/komodo/
       - client_id: 'komodo'
@@ -99,23 +101,3 @@ identity_providers:
         access_token_signed_response_alg: 'none'
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'client_secret_basic'
-
-      # Hermes WebUI. A public client (PKCE, no secret), so there is nothing
-      # for setup.sh to generate. It checks the groups claim, so it needs
-      # id_token_profile.
-      - client_id: 'hermes-webui'
-        client_name: 'Hermes WebUI'
-        public: true
-        authorization_policy: 'one_factor'
-        consent_mode: 'implicit'
-        claims_policy: 'id_token_profile'
-        require_pkce: true
-        pkce_challenge_method: 'S256'
-        redirect_uris:
-          - 'https://hermes.{{ env "DOMAIN" }}/api/auth/oidc/callback'
-        scopes: ['openid', 'profile', 'email', 'groups']
-        response_types: ['code']
-        grant_types: ['authorization_code']
-        access_token_signed_response_alg: 'none'
-        userinfo_signed_response_alg: 'none'
-        token_endpoint_auth_method: 'none'
