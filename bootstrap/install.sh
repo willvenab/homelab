@@ -65,7 +65,7 @@ EOF
 fi
 
 install -m 0644 "$REPO_DIR/bootstrap/daemon.json" /etc/docker/daemon.json
-install -D -m 0644 "$REPO_DIR/bootstrap/docker-periphery.conf" /etc/systemd/system/docker.service.d/periphery.conf
+install -D -m 0644 "$REPO_DIR/bootstrap/docker-socket-restart.conf" /etc/systemd/system/docker.service.d/socket-restart.conf
 systemctl daemon-reload
 systemctl enable docker
 systemctl restart docker
