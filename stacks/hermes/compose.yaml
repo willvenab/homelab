@@ -29,19 +29,35 @@ services:
       - /srv/appdata/hermes:/opt/data
 
   # Copies the agent's source out of its image for the WebUI, which installs
-  # it on start. Runs on every deploy so the copy always matches the image:
-  # keep this tag the same as the hermes service's (Renovate bumps both).
+  # it on start. Keep this tag the same as the hermes service's (Renovate
+  # bumps both). It only copies when the agent version changed, then stays up
+  # (doing nothing) so Komodo doesn't count an exited container as unhealthy.
+  # It must not re-copy while the WebUI runs: the WebUI reads /opt/hermes.
   agent-src:
     image: nousresearch/hermes-agent:v0.21.6
-    restart: "no"
+    restart: unless-stopped
     mem_limit: 256m
+    # Lets `docker stop` end the sleep straight away.
+    init: true
     entrypoint: ["sh", "-c"]
-    # Skip the agent's own venv; the WebUI builds its own.
+    # Skip the agent's own venv; the WebUI builds its own. The version stamp
+    # is written last, so an interrupted copy is redone.
     command:
       - >-
+        rm -f /tmp/ready &&
+        if ! cmp -s /etc/hermes/image-provenance.json /src/.image-provenance.json; then
         find /src -mindepth 1 -delete &&
         tar -C /opt/hermes --exclude=./.venv --exclude=./node_modules -cf - . |
-        tar -C /src -xf -
+        tar -C /src -xf - &&
+        cp /etc/hermes/image-provenance.json /src/.image-provenance.json;
+        fi &&
+        touch /tmp/ready &&
+        exec sleep infinity
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/ready"]
+      interval: 1m
+      start_interval: 2s
+      start_period: 5m
     volumes:
       - agent-src:/src
 
@@ -50,7 +66,7 @@ services:
     restart: unless-stopped
     depends_on:
       agent-src:
-        condition: service_completed_successfully
+        condition: service_healthy
     # The agent and its tools run in here when you chat from the WebUI.
     mem_limit: 2g
     networks:
