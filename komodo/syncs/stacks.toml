@@ -151,7 +151,7 @@ DOMAIN = [[DOMAIN]]
 
 [[stack]]
 name = "hermes"
-description = "Hermes Agent: AI agent with memory, skills and chat gateways"
+description = "Hermes Agent gateway and WebUI: AI agent with memory, skills and chat gateways"
 tags = ["homelab", "apps"]
 deploy = true
 after = ["caddy", "authelia"]
@@ -161,6 +161,9 @@ repo = "willvenab/homelab"
 git_account = "willvenab"
 branch = "main"
 run_directory = "stacks/hermes"
+# Recreate every container on deploy, so the WebUI reinstalls the agent from
+# the fresh agent-src copy when only the agent image changed.
+destroy_before_deploy = true
 environment = """
 DOMAIN = [[DOMAIN]]
 """
