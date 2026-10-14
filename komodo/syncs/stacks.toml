@@ -151,7 +151,7 @@ DOMAIN = [[DOMAIN]]
 
 [[stack]]
 name = "hermes"
-description = "Hermes Agent and Hermes WebUI: AI agent with memory, skills and chat gateways"
+description = "Hermes Agent gateway and WebUI: AI agent with memory, skills and chat gateways"
 tags = ["homelab", "apps"]
 deploy = true
 after = ["caddy", "authelia"]

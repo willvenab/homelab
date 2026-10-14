@@ -100,27 +100,9 @@ identity_providers:
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'client_secret_basic'
 
-      # Hermes Agent dashboard. A public client (PKCE, no secret), as Hermes's
-      # docs recommend, so there is nothing for setup.sh to generate.
-      # https://hermes-agent.nousresearch.com/docs/user-guide/features/web-dashboard
-      - client_id: 'hermes'
-        client_name: 'Hermes Agent'
-        public: true
-        authorization_policy: 'one_factor'
-        consent_mode: 'implicit'
-        require_pkce: true
-        pkce_challenge_method: 'S256'
-        redirect_uris:
-          - 'https://hermes.{{ env "DOMAIN" }}/auth/callback'
-        scopes: ['openid', 'profile', 'email', 'offline_access']
-        response_types: ['code']
-        grant_types: ['authorization_code', 'refresh_token']
-        access_token_signed_response_alg: 'none'
-        userinfo_signed_response_alg: 'none'
-        token_endpoint_auth_method: 'none'
-
-      # Hermes WebUI. A public client (PKCE, no secret) like the dashboard
-      # above. It checks the groups claim, so it needs id_token_profile.
+      # Hermes WebUI. A public client (PKCE, no secret), so there is nothing
+      # for setup.sh to generate. It checks the groups claim, so it needs
+      # id_token_profile.
       - client_id: 'hermes-webui'
         client_name: 'Hermes WebUI'
         public: true
@@ -130,7 +112,7 @@ identity_providers:
         require_pkce: true
         pkce_challenge_method: 'S256'
         redirect_uris:
-          - 'https://chat.{{ env "DOMAIN" }}/api/auth/oidc/callback'
+          - 'https://hermes.{{ env "DOMAIN" }}/api/auth/oidc/callback'
         scopes: ['openid', 'profile', 'email', 'groups']
         response_types: ['code']
         grant_types: ['authorization_code']

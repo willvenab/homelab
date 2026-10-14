@@ -1,20 +1,16 @@
 # Hermes Agent (github.com/NousResearch/hermes-agent): a self-hosted AI agent
-# with memory, skills and cron jobs, reached through chat apps (Telegram,
-# Discord, ...) and a web dashboard at hermes.<DOMAIN>.
+# with memory, skills and cron jobs. The hermes service is the gateway: it
+# connects chat apps (Telegram, Discord, ...) and runs scheduled jobs. The
+# agent's own web dashboard is left off in favour of the WebUI.
+#
+# Hermes WebUI (github.com/nesquena/hermes-webui) is the web UI, at
+# hermes.<DOMAIN>. It runs the agent in its own process against the same
+# /srv/appdata/hermes, so chats, memories and skills are shared with the
+# gateway. It logs in through Authelia (OIDC, public client "hermes-webui").
 #
 # All state (config.yaml, .env with LLM and chat API keys, sessions, memories,
-# skills) lives in /srv/appdata/hermes. API keys are set with `hermes setup` or
-# in the dashboard, not here: see README.md → "Hermes Agent".
-#
-# The dashboard logs in through Authelia (OIDC, public client "hermes"). It
-# refuses to start on a non-loopback bind without a login provider, so there is
-# no way to expose it unauthenticated by mistake.
-#
-# Hermes WebUI (github.com/nesquena/hermes-webui) is a chat UI at
-# chat.<DOMAIN>. It runs the agent in its own process against the same
-# /srv/appdata/hermes, so chats, memories and skills are shared with the
-# gateway. It logs in through Authelia too (OIDC, public client
-# "hermes-webui").
+# skills) lives in /srv/appdata/hermes. API keys are set with `hermes setup`,
+# not here: see README.md → "Hermes Agent".
 #
 # No Docker socket: the agent runs its tools inside its own container only.
 
@@ -22,32 +18,15 @@ services:
   hermes:
     image: nousresearch/hermes-agent:v0.21.6
     restart: unless-stopped
-    # s6 keeps the container up and supervises the gateway and dashboard;
-    # `gateway run` itself just waits.
+    # s6 keeps the container up and supervises the gateway; `gateway run`
+    # itself just waits. The dashboard only starts if HERMES_DASHBOARD is set.
     command: ["gateway", "run"]
     # Upstream recommends 2-4 GB; the headless browser tool is the hungry part.
     mem_limit: 3g
     shm_size: 1g
-    networks:
-      - proxy
-    labels:
-      homepage.group: Apps
-      homepage.name: Hermes Agent
-      homepage.icon: mdi-robot-outline
-      homepage.href: https://hermes.${DOMAIN}
-      homepage.description: AI agent with memory, skills and chat gateways
+    # Not on the proxy network: nothing connects to it.
     volumes:
       - /srv/appdata/hermes:/opt/data
-    environment:
-      # Web dashboard on :9119, behind Caddy.
-      HERMES_DASHBOARD: "1"
-      HERMES_DASHBOARD_PUBLIC_URL: https://hermes.${DOMAIN}
-      # Authelia is reached through Caddy's auth.<DOMAIN> alias on the proxy
-      # network (stacks/caddy/compose.yaml). offline_access gets a refresh
-      # token, so the dashboard doesn't log you out every hour.
-      HERMES_DASHBOARD_OIDC_ISSUER: https://auth.${DOMAIN}
-      HERMES_DASHBOARD_OIDC_CLIENT_ID: hermes
-      HERMES_DASHBOARD_OIDC_SCOPES: openid profile email offline_access
 
   # Copies the agent's source out of its image for the WebUI, which installs
   # it on start. Runs on every deploy so the copy always matches the image:
@@ -78,10 +57,10 @@ services:
       - proxy
     labels:
       homepage.group: Apps
-      homepage.name: Hermes WebUI
-      homepage.icon: mdi-chat-outline
-      homepage.href: https://chat.${DOMAIN}
-      homepage.description: Chat with Hermes Agent
+      homepage.name: Hermes
+      homepage.icon: mdi-robot-outline
+      homepage.href: https://hermes.${DOMAIN}
+      homepage.description: AI agent with memory, skills and chat gateways
     volumes:
       # Same Hermes home as the agent, at the same path.
       - /srv/appdata/hermes:/opt/data
@@ -101,13 +80,15 @@ services:
       WANTED_GID: "10000"
       # Behind Caddy on https.
       HERMES_WEBUI_SECURE: "1"
-      HERMES_WEBUI_ALLOWED_ORIGINS: https://chat.${DOMAIN}
-      # Login through Authelia. The redirect URI is fixed because the WebUI
-      # would otherwise build it from the plain-http request Caddy sends.
+      HERMES_WEBUI_ALLOWED_ORIGINS: https://hermes.${DOMAIN}
+      # Login through Authelia, reached through Caddy's auth.<DOMAIN> alias on
+      # the proxy network (stacks/caddy/compose.yaml). The redirect URI is
+      # fixed because the WebUI would otherwise build it from the plain-http
+      # request Caddy sends.
       # Only members of the Authelia group "admins" get in.
       HERMES_WEBUI_OIDC_ISSUER: https://auth.${DOMAIN}
       HERMES_WEBUI_OIDC_CLIENT_ID: hermes-webui
-      HERMES_WEBUI_OIDC_REDIRECT_URI: https://chat.${DOMAIN}/api/auth/oidc/callback
+      HERMES_WEBUI_OIDC_REDIRECT_URI: https://hermes.${DOMAIN}/api/auth/oidc/callback
       HERMES_WEBUI_OIDC_SCOPES: openid profile email groups
       HERMES_WEBUI_OIDC_ALLOW_CLAIM: groups
       HERMES_WEBUI_OIDC_ALLOW_VALUES: admins

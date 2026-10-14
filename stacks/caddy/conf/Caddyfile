@@ -65,15 +65,9 @@
 		reverse_proxy stirling-pdf:8080
 	}
 
-	# Logs in through Authelia itself (OIDC).
+	# Hermes WebUI. Logs in through Authelia itself (OIDC).
 	@hermes host hermes.{$DOMAIN}
 	handle @hermes {
-		reverse_proxy hermes:9119
-	}
-
-	# Hermes WebUI. Logs in through Authelia itself (OIDC).
-	@chat host chat.{$DOMAIN}
-	handle @chat {
 		reverse_proxy hermes-webui:8787
 	}
 

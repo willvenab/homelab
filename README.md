@@ -91,8 +91,7 @@ The `authelia` stack serves one login page at `auth.<DOMAIN>`. Once you've logge
 | Homepage | Caddy asks Authelia first |
 | OSRS Tools | Caddy asks Authelia first |
 | Stirling-PDF | Caddy asks Authelia first |
-| Hermes Agent | OIDC, no setup needed (a public client, so no secret) |
-| Hermes WebUI | OIDC, no setup needed (a public client); only the `admins` group gets in |
+| Hermes   | OIDC, no setup needed (a public client, so no secret); only the `admins` group gets in |
 
 Secrets, the OIDC signing key and the user list live in `/srv/appdata/authelia` and are created by `stacks/authelia/setup.sh` (see [After bootstrap](#after-bootstrap-one-time-in-the-komodo-ui), step 5). Re-running it is safe; it prints the Komodo and Beszel client secrets again. If this box was set up before Authelia existed, `git -C /opt/homelab pull` first, then run it and redeploy `authelia`.
 
@@ -155,34 +154,24 @@ Tailscale has no local web UI, so its tile on `home.<DOMAIN>` links to the admin
 
 ## Hermes Agent
 
-[Hermes Agent](https://github.com/NousResearch/hermes-agent) is an AI agent that remembers things, learns skills and runs scheduled jobs. You talk to it through a chat app (Telegram, Discord, ...) or the dashboard at `hermes.<DOMAIN>`, which logs in through Authelia. Everything it knows, including its API keys, is in `/srv/appdata/hermes`.
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) is an AI agent that remembers things, learns skills and runs scheduled jobs. The `hermes` stack runs two containers that share everything in `/srv/appdata/hermes` (model, API keys, memories, skills, sessions):
 
-1. Deploy the `hermes` stack (after `authelia`, which has its OIDC client). It starts without any API keys; it just can't answer until it has some.
-2. On the server, run the setup wizard and pick a model provider (e.g. OpenRouter, Anthropic or Nous Portal). Set up a chat app here too, or later from the dashboard's **Channels** page:
+- `hermes`, the gateway: connects chat apps (Telegram, Discord, ...) and runs scheduled jobs. The agent's built-in dashboard is turned off.
+- `hermes-webui`, [Hermes WebUI](https://github.com/nesquena/hermes-webui) at `hermes.<DOMAIN>`: chat in the browser. It runs its own copy of the agent, so tools you trigger from it run in this container, not the gateway's. Its file browser shows `/srv/appdata/hermes-webui/workspace`.
+
+1. Deploy the `hermes` stack (after `authelia`, which has its OIDC client). It starts without any API keys; it just can't answer until it has some. The WebUI's first start takes a few minutes while it installs the agent: `docker logs -f hermes-hermes-webui-1`.
+2. On the server, run the setup wizard and pick a model provider (e.g. OpenRouter, Anthropic or Nous Portal). Set up a chat app here too:
    ```sh
    docker exec -it hermes-hermes-1 hermes setup
    ```
-   The keys go into `/srv/appdata/hermes/.env`, not Komodo. Then restart the gateway: `docker exec hermes-hermes-1 hermes gateway restart`.
-3. Open `hermes.<DOMAIN>` and click **Sign in with Self-Hosted OIDC**.
-4. Optional: let the dashboard trust Caddy's `X-Forwarded-Proto`, so its cookies are marked `Secure`. Get the proxy network's subnet with `docker network inspect proxy -f '{{(index .IPAM.Config 0).Subnet}}'` and add it to `/srv/appdata/hermes/config.yaml`, then restart the stack:
-   ```yaml
-   dashboard:
-     trusted_proxies:
-       - "172.18.0.0/16"   # your subnet
-   ```
+   The keys go into `/srv/appdata/hermes/.env`, not Komodo. Then restart the gateway: `docker exec hermes-hermes-1 hermes gateway restart`. Run the wizard again later to add another chat app.
+3. Open `hermes.<DOMAIN>` and sign in with Authelia. Only users in the `admins` group (in `users_database.yml`) are let in; change `HERMES_WEBUI_OIDC_ALLOW_VALUES` in `stacks/hermes/compose.yaml` to allow others.
 
-The agent can run shell commands, but only inside its own container: the stack doesn't mount the Docker socket. Logs: `docker logs hermes-hermes-1`, or `docker exec hermes-hermes-1 hermes logs --follow`.
+Neither container has the Docker socket, so the agent's shell commands stay inside its own container. Logs: `docker logs hermes-hermes-1` (or `docker exec hermes-hermes-1 hermes logs --follow`) and `docker logs hermes-hermes-webui-1`.
 
-### Hermes WebUI
+**Upgrades.** The WebUI needs the agent's code, so on each deploy the `agent-src` container copies it out of the agent image, and the WebUI reinstalls it. The stack is set to `destroy_before_deploy` for that, so any deploy restarts the gateway too. Upstream treats a WebUI release and an agent release as a pair: if something breaks after one side is bumped, bump the other too. The WebUI's tags on ghcr.io mix stable and experimental builds, so Renovate takes WebUI versions from its stable GitHub releases instead (see `renovate.json`).
 
-[Hermes WebUI](https://github.com/nesquena/hermes-webui) is a chat app for the same agent at `chat.<DOMAIN>`, in the `hermes` stack. It runs its own copy of the agent against `/srv/appdata/hermes`, so it shares the gateway's model, API keys, memories, skills and sessions. Do the Hermes Agent steps above first; there's nothing else to set up.
-
-- Open `chat.<DOMAIN>` and sign in with Authelia. Only users in the `admins` group (in `users_database.yml`) are let in; change `HERMES_WEBUI_OIDC_ALLOW_VALUES` in `stacks/hermes/compose.yaml` to allow others.
-- Tools you trigger from the WebUI run in the `hermes-hermes-webui-1` container, not the gateway's. Its file browser shows `/srv/appdata/hermes-webui/workspace`.
-- On each deploy the `agent-src` container copies the agent's code out of the agent image, and the WebUI installs it, so the first start after a deploy takes a few minutes. Watch it with `docker logs -f hermes-hermes-webui-1`. The stack is set to `destroy_before_deploy`, so a deploy restarts the gateway too.
-- Upstream treats a WebUI release and an agent release as a pair. If something breaks after one side is bumped, bump the other too.
-- The WebUI's tags on ghcr.io mix stable and experimental builds, so Renovate takes WebUI versions from its stable GitHub releases instead (see `renovate.json`).
-- If the WebUI can't read `/srv/appdata/hermes` (`Permission denied` in its log), check the owner with `stat -c '%u:%g' /srv/appdata/hermes` and set `WANTED_UID`/`WANTED_GID` in the compose file to match.
+If the WebUI can't read `/srv/appdata/hermes` (`Permission denied` in its log), check the owner with `stat -c '%u:%g' /srv/appdata/hermes` and set `WANTED_UID`/`WANTED_GID` in the compose file to match.
 
 ## Adding a service
 
