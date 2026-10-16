@@ -6,7 +6,7 @@
 
 services:
   osrs-tools:
-    image: ghcr.io/willvenab/osrs-tools:0.1.0
+    image: ghcr.io/willvenab/osrs-tools:0.2.0
     restart: unless-stopped
     mem_limit: 512m
     networks:
